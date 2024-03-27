@@ -33,6 +33,14 @@ ALLOWED_HOSTS = []
 INSTALLED_APPS = [
     "pages.apps.PagesConfig",
     "projects.apps.ProjectsConfig",
+    "authentication.apps.AuthenticationConfig",  # Replace "authentication" with your actual app name
+    "teacher_management.apps.TeacherManagementConfig",  # Replace "teacher_management" with your actual app name
+    "student_management.apps.StudentManagementConfig",  # Replace "student_management" with your actual app name
+    "courses_and_lessons.apps.CoursesAndLessonsConfig",  # Replace "courses_and_lessons" with your actual app name
+    "messaging_and_communication.apps.MessagingAndCommunicationConfig",  # Replace "messaging_and_communication" with your actual app name
+    "payments_and_billing.apps.PaymentsAndBillingConfig",  # Replace "payments_and_billing" with your actual app name
+    "content_management.apps.ContentManagementConfig",  # Replace "content_management" with your actual app name
+    "analytics_and_reporting.apps.AnalyticsAndReportingConfig",  # Replace "analytics_and_reporting" with your actual app name
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -40,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 ]
+
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
