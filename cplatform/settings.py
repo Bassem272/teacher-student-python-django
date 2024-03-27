@@ -143,5 +143,5 @@ import firebase_admin
 from firebase_admin import credentials
 
 # Initialize Firebase Admin SDK
-cred = credentials.Certificate("../cplatform-project-firebase-adminsdk-u0ez0-fec7f8ddd6.json")
+cred = credentials.Certificate("F:\cplatform-project-firebase-adminsdk-u0ez0-fec7f8ddd6.json")
 firebase_admin.initialize_app(cred)
