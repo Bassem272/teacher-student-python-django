@@ -129,3 +129,10 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # added
 MEDIA_ROOT = BASE_DIR / "uploads/"
 MEDIA_URL = "media/"
+
+import firebase_admin
+from firebase_admin import credentials
+
+# Initialize Firebase Admin SDK
+cred = credentials.Certificate("../cplatform-project-firebase-adminsdk-u0ez0-fec7f8ddd6.json")
+firebase_admin.initialize_app(cred)
