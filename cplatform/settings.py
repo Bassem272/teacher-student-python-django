@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     "courses_and_lessons.apps.CoursesAndLessonsConfig",  # Replace "courses_and_lessons" with your actual app name
     "messaging_and_communication.apps.MessagingAndCommunicationConfig",  # Replace "messaging_and_communication" with your actual app name
     "payments_and_billing.apps.PaymentsAndBillingConfig",  # Replace "payments_and_billing" with your actual app name
-    "content_management.apps.ContentManagementConfig",  # Replace "content_management" with your actual app name
+    # "content_management.apps.ContentManagementConfig",  # Replace "content_management" with your actual app name
     "analytics_and_reporting.apps.AnalyticsAndReportingConfig",  # Replace "analytics_and_reporting" with your actual app name
     "django.contrib.admin",
     "django.contrib.auth",
@@ -54,7 +54,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    # "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -139,9 +139,5 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 MEDIA_ROOT = BASE_DIR / "uploads/"
 MEDIA_URL = "media/"
 
-import firebase_admin
-from firebase_admin import credentials
+APPEND_SLASH=False
 
-# Initialize Firebase Admin SDK
-cred = credentials.Certificate("F:\cplatform-project-firebase-adminsdk-u0ez0-fec7f8ddd6.json")
-firebase_admin.initialize_app(cred)
