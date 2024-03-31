@@ -8,7 +8,7 @@ import json
 db = get_firestore_client()
 
 
-@csrf_exempt
+# @csrf_exempt
 def register(request):
     if request.method == "POST":
         # Get the user input from the request
