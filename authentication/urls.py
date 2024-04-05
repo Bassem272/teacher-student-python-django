@@ -1,5 +1,8 @@
 from django.urls import path, include, re_path
 from . import views
+from . import middleware
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 # from .pages import home
 urlpatterns = [
     path("register/", views.register, name="register"),
@@ -11,6 +14,11 @@ urlpatterns = [
     path("delete_user/<str:uid>/", views.delete_user, name="delete_user"),
     path("create_user/", views.create_user, name="create_user"),
     path("", include("pages.urls")),
-     path('verify-email/', views.verify_email, name='verify_email'),
+    path("verify-email/", views.verify_email, name="verify_email"),
+    path("login/", views.login, name="login"),
+    path(
+        "users/<str:id>/update_password/", views.update_password, name="update_password"
+    ),
+    path("logout/", views.logout, name="logout"),
+    path("ok/", middleware.TokenValidationMiddleware(views.ok)), # this worked alright 
 ]
-

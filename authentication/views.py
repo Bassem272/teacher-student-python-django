@@ -1,10 +1,12 @@
+import datetime
 from telnetlib import STATUS
 from django.shortcuts import render
 from django.urls import reverse
 from grpc import Status
+import jwt
 from requests import Response
 from cplatform.firestore_utils import get_firestore_client
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseNotFound, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from firebase_admin import auth, credentials
@@ -87,7 +89,6 @@ from django.contrib.auth.tokens import default_token_generator
 from django.http import HttpResponseBadRequest
 
 
-
 # this is the best for creating  the user 00000000000
 # @api_view(["POST"])
 # def create_user(request):
@@ -100,7 +101,7 @@ from django.http import HttpResponseBadRequest
 
 #     # Create user in Firebase Authentication
 #     user_record = auth.create_user(email=email, password=password, display_name=name)
-    
+
 #     # Send email verification request
 #     auth.generate_email_verification_link(email)
 #     # Generate verification token
@@ -132,7 +133,7 @@ from django.http import HttpResponseBadRequest
 # def verify_email(request):
 #     email = request.GET.get('email')
 #     token = request.GET.get('token')
-    
+
 #     if not email or not token:
 #         return HttpResponseBadRequest("Missing email or token")
 
@@ -157,6 +158,7 @@ from django.http import JsonResponse, HttpResponseBadRequest
 from firebase_admin import auth
 from .email_code import send_verification_code_email
 
+
 @api_view(["POST"])
 def create_user(request):
     data = json.loads(request.body)
@@ -165,55 +167,58 @@ def create_user(request):
     email = data.get("email")
     password = data.get("password")
     name = data.get("name")
-
+    hashed_password = make_password(password)
     # Generate a verification code
-    verification_code = ''.join(random.choices('0123456789', k=6))
+    verification_code = "".join(random.choices("0123456789", k=6))
 
     # Create user in Django User model
-    user = User.objects.create_user(username=email, email=email, password=password, first_name=name)
+    user = User.objects.create_user(
+        username=email, email=email, password=password, first_name=name
+    )
 
     # Send verification code via email (you need to implement this part)
     send_verification_code_email(name, email, verification_code)
 
     # Store verification code in the session (you need to implement this part)
-    request.session['verification_code'] = verification_code
+    request.session["verification_code"] = verification_code
 
     # Store additional user data in Firestore
     datao = {
         "email": email,
         "display_name": name,
         "photo_url": "photo_url",
-        "password": password,
+        "password": hashed_password ,
         "email_verified": False,
+        "verification_code": verification_code,
+        "role": "user",
+        "token": "jwtToken",
         # Add more fields as needed
     }
     user_ref = db.collection("users").document(str(user.pk))
     user_ref.set(datao)
 
-    return render(request,"ver_email.html",
-      context={
-            "user-data": datao, 
-            "userid": user.pk, 
-            "verification_sent": True
-      }
+    return render(
+        request,
+        "ver_email.html",
+        context={"user-data": datao, "userid": user.pk, "verification_sent": True},
     )
 
 
 @api_view(["POST"])
 def verify_email(request):
     data = json.loads(request.body)
-    email = data.get('email')
-    code = data.get('code')
+    email = data.get("email")
+    code = data.get("code")
     print(email, code)
     if not email or not code:
         return HttpResponseBadRequest("Missing email or code")
 
     try:
         # Get verification code from the session
-        stored_code = request.session.get('verification_code')
+        stored_code = request.session.get("verification_code")
         if stored_code and code == stored_code:
             # Clear verification code from session
-            del request.session['verification_code']
+            del request.session["verification_code"]
 
             # Activate the user and update email_verified field in Firestore
             user = User.objects.get(email=email)
@@ -228,15 +233,97 @@ def verify_email(request):
     except User.DoesNotExist:
         return HttpResponseBadRequest("User does not exist")
 
+from django.contrib.auth.hashers import make_password
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from django.contrib.auth import authenticate
+from rest_framework.authtoken.models import Token
+from firebase_admin import auth
+from django.contrib.auth.hashers import check_password
 
+@api_view(["POST"])
+def login(request):
+    data = json.loads(request.body)
+    email = data.get('email')
+    password = data.get('password')
+    
+    try:
+        # Retrieve user data from Firestore
+        user_ref = db.collection('users').where('email', '==', email).get()
+        id = user_ref[0].id
+        if user_ref:
+            user_data = user_ref[0].to_dict()
+            hashed_password = user_data['password']
+            # Compare passwords
+            if check_password(password, hashed_password):
+                # Authentication successful
+                # Generate JWT token or perform any other necessary actions
+                # Set expiration time (e.g., 1 hour from now)
+                expiration_time = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+                # Generate JWT token with expiration time
+                payload = {'email': email, 'exp': expiration_time}
+                token = jwt.encode(payload, 'your_secret_key', algorithm='HS256')
+                db.collection('users').document(id).update({'token': token})
+                # Send token along with success message
+                return Response({"message": "Authentication successful", "token": token})
+            else:
+                return Response({"error": "Invalid credentials"}, status=401)
+        else:
+            return Response({"error": "User not found"}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+
+@api_view(["POST"])
+def logout(request):
+    data = json.loads(request.body)
+    email = data.get('email')
+
+    try:
+        # Retrieve user data from Firestore
+        user_ref = db.collection('users').where('email', '==', email).get()
+        if user_ref:
+            user_data = user_ref[0].to_dict()
+            # Set token to null
+            user_ref.update({'token': None})
+            return Response({"message": "Logout successful"})
+        else:
+            return Response({"error": "User not found"}, status=404)
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+@api_view(["POST"])
+def ok(request):
+    print("ok is here!")
+    return Response({"message": "ok is ok !"})
+
+
+
+@api_view(["PATCH"])
+def update_password(request, id):
+    data = json.loads(request.body)
+    new_password = data.get("new_password")
+    if not new_password:
+        return HttpResponseBadRequest("Missing new password")
+
+    try:
+        user = db.collection("users").document(id)
+        if user.get().exists:
+            hashed_password = make_password(new_password)
+            user.update({"password": hashed_password})
+            return JsonResponse({"message": "Password updated successfully"}, status=200)
+        else:
+            return HttpResponseNotFound("User not found")
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+   
 
 # app/views.py
 from django.shortcuts import render
 
+
 def home(request):
-    return render(request, 'home.html')
-
-
+    return render(request, "home.html")
 
 
 @api_view(["DELETE"])
@@ -253,29 +340,6 @@ def delete_user(request, uid):  # Change parameter name to 'uid'
         )
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 # def create_user(request):
@@ -359,35 +423,6 @@ def send_verification_email(uid):
     auth.send_email_verification(uid=uid)
     return JsonResponse({"message": "Verification email sent"})
 
-
-def login(request):
-    if request.method == "POST":
-        # Extract user credentials from request data
-        email = request.POST.get("email")
-        password = request.POST.get("password")
-
-        try:
-            # Authenticate user with Firebase
-            user = auth.get_user_by_email(email)
-            if user.password == password:
-                pass
-            else:
-                return JsonResponse({"error": "Invalid credentials"}, status=401)
-
-            # If user is found and password matches, generate access token
-            # (Note: This is a simplified example. Actual authentication process may vary)
-            # Here, you might also perform additional checks like verifying the email is verified, etc.
-            access_token = generate_access_token(user.uid)
-
-            # Return access token in response
-            return JsonResponse({"access_token": access_token})
-        except auth.AuthError as e:
-            # Handle authentication errors
-            return JsonResponse({"error": "Authentication failed"}, status=401)
-
-    else:
-        # Handle unsupported request methods
-        return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
 def generate_access_token(user_id):

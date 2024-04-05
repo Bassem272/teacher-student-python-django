@@ -78,6 +78,13 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
 ]
 
+# settings.py
+
+# TOKEN_MIDDLEWARE = 'authentication.middleware.TokenValidationMiddleware'
+# ROLE_MIDDLEWARE = 'authentication.middleware.RoleBasedAccessControlMiddleware'
+
+
+
 ROOT_URLCONF = "cplatform.urls"
 
 TEMPLATES = [
