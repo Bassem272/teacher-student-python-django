@@ -8,5 +8,4 @@ def get_firestore_client():
     if not firebase_admin._apps:
         cred = credentials.Certificate("dragna272.json")
         firebase_admin.initialize_app(cred)
-
     return firestore.client()
