@@ -5,18 +5,33 @@ from django.urls import reverse
 from grpc import Status
 import jwt
 from requests import Response
-from django.http import HttpResponse, HttpResponseForbidden, HttpResponseNotFound, JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
+
 import json
-from firebase_admin import auth, credentials
-from rest_framework import status
-from rest_framework.response import Response
 from firebase_admin import auth
-from rest_framework.response import Response
 from rest_framework import status
-import json
+
+
 from rest_framework.decorators import api_view
 from django.contrib.auth.models import User
+
+
+from rest_framework.response import Response
+
+from rest_framework.authtoken.models import Token
+from django.contrib.auth.hashers import check_password
+
+from django.contrib.auth.tokens import default_token_generator
+
+import random
+
+from django.http import JsonResponse, HttpResponseBadRequest
+from .email_code import send_verification_code_email
+from firebase_admin import firestore
+from django.contrib.auth.hashers import make_password
+
+from django.http import HttpResponseNotFound
+
 
 from firestore_utils import get_firestore_client
 
@@ -82,11 +97,6 @@ def register(request):
 #     # Create a new user in Firebase Authentication with the provided email and password
 #     user = auth.create_user(email=email, password=password)
 #     return JsonResponse({"userid": user.uid}, status=201)
-from django.shortcuts import render
-from django.core.mail import send_mail
-from .email import send_ver_email
-from django.contrib.auth.tokens import default_token_generator
-from django.http import HttpResponseBadRequest
 
 
 # this is the best for creating  the user 00000000000
@@ -152,18 +162,16 @@ from django.http import HttpResponseBadRequest
 #     except auth.InvalidTokenError:
 #         return HttpResponseBadRequest("Invalid token")
 
-import random
-from django.contrib.auth.models import User
-from django.http import JsonResponse, HttpResponseBadRequest
-from firebase_admin import auth
-from .email_code import send_verification_code_email
-
 
 @api_view(["POST"])
 def create_user(request):
     data = json.loads(request.body)
     # Extract relevant fields from the JSON data
     email = data.get("email")
+    # Check if email is already registered
+    email_exists = db.collection("users").where("email", "==", email).get()
+    if email_exists:
+        return JsonResponse({"message": "Email already exists"}, status=400)
     password = data.get("password")
     name = data.get("name")
     hashed_password = make_password(password)
@@ -171,16 +179,17 @@ def create_user(request):
     allowed_roles = ["teacher", "student", "parent"]  # Define allowed roles
     # Check if role is provided and valid
     if "role" in data and data["role"] == "admin":
-        return JsonResponse({"message":"User cannot be assigned the role of admin"}) 
+        return JsonResponse({"message": "User cannot be assigned the role of admin"})
     if "role" not in data or data["role"] not in allowed_roles:
-        return JsonResponse({"message":"Invalid user role"}) 
+        return JsonResponse({"message": "Invalid user role"})
     courses = data.get("courses")
+    children = data.get("children")
     # Generate a verification code
     verification_code = "".join(random.choices("0123456789", k=6))
     # Create user in Django User model
-    user = User.objects.create_user(
-        username=name, email=email, password=password
-    )
+    # user = User.objects.create_user(
+    #     username=name, email=email, password=password
+    # )
 
     # Send verification code via email (you need to implement this part)
     send_verification_code_email(name, email, verification_code)
@@ -189,25 +198,37 @@ def create_user(request):
     # Store additional user data in Firestore
     datao = {
         "email": email,
-        "display_name": name,
+        "name": name,
         "photo_url": "photo_url",
-        "password": hashed_password ,
+        "password": hashed_password,
         "email_verified": False,
         "verification_code": verification_code,
         "role": "user",
         "token": "jwtToken",
-        "role":role,
+        "role": role,
         "created_at": datetime.datetime.now(),
         "updated_at": datetime.datetime.now(),
-        "courses":courses,
+        "courses": courses,
+        "children": children,
+        "inbox": [],  # List of received messages
+        "sent_messages": [],  # List of sent messages
+        "unread_messages": 0,  # Count of unread messages
+        "message_notifications_enabled": True,  # Enable message notifications by default
+        "blocked_users": [],  # List of blocked users
+        "favorite_users": [],  # List of favorite users
+        "notifications": [],  # List of notifications
+        "notification_settings": {},  # User notification settings
+        "email_notifications_enabled": True,  # Enable email notifications by default
+        "push_notifications_enabled": True,  # Enable push notifications by default
         # Add more fields as needed
     }
-    user_ref = db.collection("users").document(str(user.pk))
+    user_ref = db.collection("users").document()
     user_ref.set(datao)
+    user_id = user_ref.id
     return render(
         request,
         "ver_email.html",
-        context={"user-data": datao, "userid": user.pk, "verification_sent": True},
+        context={"user-data": user_ref, "userId": user_id, "verification_sent": True},
     )
 
 
@@ -240,40 +261,36 @@ def verify_email(request):
     except User.DoesNotExist:
         return HttpResponseBadRequest("User does not exist")
 
-from django.contrib.auth.hashers import make_password
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from django.contrib.auth import authenticate
-from rest_framework.authtoken.models import Token
-from firebase_admin import auth
-from django.contrib.auth.hashers import check_password
-
 
 @api_view(["POST"])
 def login(request):
     data = json.loads(request.body)
-    email = data.get('email')
-    password = data.get('password')
-    
+    email = data.get("email")
+    password = data.get("password")
+
     try:
         # Retrieve user data from Firestore
-        user_ref = db.collection('users').where('email', '==', email).get()
+        user_ref = db.collection("users").where("email", "==", email).get()
         id = user_ref[0].id
         if user_ref:
             user_data = user_ref[0].to_dict()
-            hashed_password = user_data['password']
+            hashed_password = user_data["password"]
             # Compare passwords
             if check_password(password, hashed_password):
                 # Authentication successful
                 # Generate JWT token or perform any other necessary actions
                 # Set expiration time (e.g., 1 hour from now)
-                expiration_time = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
+                expiration_time = datetime.datetime.utcnow() + datetime.timedelta(
+                    hours=100
+                )
                 # Generate JWT token with expiration time
-                payload = {'email': email, 'exp': expiration_time}
-                token = jwt.encode(payload, 'your_secret_key', algorithm='HS256')
-                db.collection('users').document(id).update({'token': token})
+                payload = {"email": email, "exp": expiration_time}
+                token = jwt.encode(payload, "your_secret_key", algorithm="HS256")
+                db.collection("users").document(id).update({"token": token})
                 # Send token along with success message
-                return Response({"message": "Authentication successful", "token": token})
+                return Response(
+                    {"message": "Authentication successful", "token": token}
+                )
             else:
                 return Response({"error": "Invalid credentials"}, status=401)
         else:
@@ -285,14 +302,14 @@ def login(request):
 @api_view(["POST"])
 def logout(request):
     data = json.loads(request.body)
-    email = data.get('email')
+    email = data.get("email")
     try:
         # Retrieve user data from Firestore
-        user_ref = db.collection('users').where('email', '==', email).get()
+        user_ref = db.collection("users").where("email", "==", email).get()
         if user_ref:
             user_data = user_ref[0].to_dict()
             # Set token to null
-            user_ref.update({'token': None})
+            user_ref.update({"token": None})
             return Response({"message": "Logout successful"})
         else:
             return Response({"error": "User not found"}, status=404)
@@ -318,13 +335,16 @@ def update_password(request, id):
         if user.get().exists:
             hashed_password = make_password(new_password)
             user.update({"password": hashed_password})
-            return JsonResponse({"message": "Password updated successfully"}, status=200)
+            return JsonResponse(
+                {"message": "Password updated successfully"}, status=200
+            )
         else:
             return HttpResponseNotFound("User not found")
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-   
 
+
+# _______>_>______we first use reset_password_email then we use reset_password_form
 @api_view(["POST"])
 def reset_password_email(request):
     user_data = request.user_data
@@ -334,103 +354,61 @@ def reset_password_email(request):
     name = user_data.get("name")
     if not email:
         return Response({"error": "Email not found in user data"}, status=400)
-    link  = request.build_absolute_uri(reverse('reset_password_page'))
+    link = request.build_absolute_uri(reverse("reset_password_page"))
     # Send link via email (you need to implement this part)
     send_verification_code_email(name, email, link)
-    return JsonResponse({"message": "Email sent with the link for the reset password"}, status= 200)
+    return JsonResponse(
+        {"message": "Email sent with the link for the reset password"}, status=200
+    )
+
 
 def reset_password_page(request):
-    return render(request, 'reset_password.html')
+    return render(request, "reset_password.html")
 
-
-# @api_view(["POST"])
-# def reset_password_form(request):
-#     data = json.loads(request.body)
-#     new_password = data.get("new_password")
-
-#     email = data.get("email")
-#     if not email:
-#         return JsonResponse({"error": "Email is required"}, status=400)
-#     if not new_password :
-#         return HttpResponseBadRequest("Missing new password ")
-#     try:
-#         # this returns a query object you can get it with either 
-#         # get() or stream() and each one is different where get()
-#         # you can access each item but the other is to be iterated over like
-#         # a for item in items: 
-#         user_ref = db.collection('users').where('email', '==', email).get()
-#         print(">>>>______stop__me________>>>>>>>>>>>>>>>_________")
-#         print(user_ref)
-#         user_snapshot = user_ref[0]
-#         print(user_snapshot)
-#         user_data = user_snapshot.to_dict()
-#         print(user_data)
-#         print(">>>>______stop__me________>>>>>>>>>>>>>>>_________")
-#         print(user_data)
-#         # so you can update the user_data directly not the ref
-#         if user_data:
-#             hashed_password = make_password(new_password)
-#             user_data.update({"password": hashed_password})
-#             user_doc_ref = user_snapshot.reference
-#             print(user_doc_ref)
-#             user_doc_ref.update(user_data)
-#             return JsonResponse({"message": "Password updated successfully",}, status=200)
-#         else:
-#             return HttpResponseNotFound("User not found")
-#     except Exception as e:
-#         return JsonResponse({"error": str(e)}, status=500)
-# from django.shortcuts import render
-
-from firebase_admin import firestore
-from django.contrib.auth.hashers import make_password
-import json
-from django.http import JsonResponse, HttpResponseBadRequest, HttpResponseNotFound
 
 def reset_password_form(request):
     data = json.loads(request.body)
     new_password = data.get("new_password")
     email = data.get("email")
-    
+
     if not email:
         return JsonResponse({"error": "Email is required"}, status=400)
     if not new_password:
         return JsonResponse({"error": "New password is required"}, status=400)
-    
+
     try:
         # Retrieve the user document reference based on the email
-        user_ref = db.collection('users').where('email', '==', email).stream()
-        
+        user_ref = db.collection("users").where("email", "==", email).stream()
+
         # Check if any document matches the query
         found_user = False
         for doc in user_ref:
             found_user = True
             user_data = doc.to_dict()
-            
+
             # Update the password field with the new hashed password
             hashed_password = make_password(new_password)
-            doc.reference.update({"display_name":"go now"})
-            doc.reference.update({"photo_url":"rul as is if "})
+            doc.reference.update({"display_name": "go now"})
+            doc.reference.update({"photo_url": "rul as is if "})
             doc.reference.update({"password": hashed_password})
             print(f"____{doc.id}________<><><><><><><><><>><>")
-            reff= db.collection('users').document(doc.id).get()
+            reff = db.collection("users").document(doc.id).get()
             re = reff.to_dict()
             print(re)
-            database_pass = re.get('password')
+            database_pass = re.get("password")
             if not check_password(new_password, database_pass):
                 return JsonResponse({"error": "password is not the same "}, status=400)
-            print('_________,.,.,.,.,___________')
+            print("_________,.,.,.,.,___________")
             print(check_password)
             # Break the loop after updating the first matching document
             break
-        
+
         if not found_user:
             return HttpResponseNotFound("User not found")
-        
+
         return JsonResponse({"message": "Password updated successfully"}, status=200)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
-
 
 
 def home(request):
@@ -438,12 +416,16 @@ def home(request):
 
 
 @api_view(["DELETE"])
-def delete_user(request, uid):  # Change parameter name to 'uid'
+def delete_user(request, id):  # Change parameter name to 'id'
     try:
         # Delete user from Firebase Authentication
-        auth.delete_user(uid)
+
         # Delete user data from Firestore
-        db.collection("users").document(uid).delete()
+        user_ref = db.collection("users").document(id)
+        if user_ref.get().exists:
+            user_ref.delete()
+        else:
+            return HttpResponseNotFound("User not found")
         return JsonResponse(
             {"message": "User and associated data deleted successfully"}, status=200
         )
@@ -451,60 +433,39 @@ def delete_user(request, uid):  # Change parameter name to 'uid'
         return JsonResponse({"error": str(e)}, status=500)
 
 
-# def create_user(request):
-#     # Extract email and password from the request body
-#     data = json.loads(request.body)
-#     email = data.get('email')
-#     password = data.get('password')
-
-#     # Check if email and password are provided
-#     if not email or not password:
-#         return Response({'error': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
-
-#     try:
-#         # Create a new user in Firebase Authentication with the provided email and password
-#         user = auth.create_user(email=email, password=password)
-#         return Response({'uid': user.uid}, status=status.HTTP_201_CREATED)
-#     except FirebaseError as e:
-#         # Handle Firebase Authentication errors
-#         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-# def get_user(request, uid):
-
-#     # Retrieve user information from Firebase Authentication using the UID
-#     user_record = get_user(
-#         uid
-#     )  # Assuming get_user is a function to retrieve the UserRecord object
-#     user_data = {
-#         "uid": user_record.uid,
-#         "email": user_record.email,
-#         # Add more user attributes as needed
-#     }
-#     return JsonResponse({"user_data": user_data}, status=200)
-
-#     # Handle errors
-
-
-def get_user1(request, id):
-    return JsonResponse({"id": id})
-
-
 @api_view(["GET"])
 def get_user2(request, value):
     # Retrieve user information from Firebase Authentication using the UID
-    user_record = auth.get_user(
-        value
-    )  # Assuming get_user is a function to retrieve the UserRecord object
-    user_data = {
-        "uid": user_record.uid,
-        "email": user_record.email,
-        # Add more user attributes as needed
-    }
-    return JsonResponse({"user_data": user_data}, status=200)
+    print(request)
+    user_ref = db.collection("users").document(value).get()  # this gets reference
+    user_data = user_ref.to_dict()  # this gets snapshot
+    emai = user_data["email"]
+    print(emai)
+    # print(user_ref2)
+    print(user_ref.id)
+
+    print(">>>>>>>)))))___________")
+    # user_data = request.user_data
+    return Response({"user": user_data})  # Example response
 
 
-# return JsonResponse({'id': value})
+@api_view(["GET"])
+def get_all_users(request):
+    # Retrieve user information from Firebase Authentication using the UID
+    print(request)
+    all_users = []
+    # map with the id as the key
+    users_map = {}
+    users_ref = db.collection("users").stream()  # this gets reference
+    for doc in users_ref:
+        users_map[doc.id] = doc.to_dict()
+        user_data = doc.to_dict()  # this gets snapshot
+        all_users.append(user_data)
+    print(all_users)
+    # print(user_ref2)
+    print(">>>>>>>)))))___________")
+    # user_data = request.user_data
+    return Response({"users": all_users, "users_map": users_map})  # Example response
 
 
 def update_user_display_name(uid, display_name):
@@ -529,9 +490,8 @@ def send_verification_email(uid):
     # Args:
     #     uid (str): UID of the user.
     # """
-    auth.send_email_verification(uid=uid)
+    # auth.send_email_verification(uid=uid)
     return JsonResponse({"message": "Verification email sent"})
-
 
 
 def generate_access_token(user_id):

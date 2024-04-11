@@ -4,7 +4,13 @@ import json
 from django import db
 from django.contrib.auth import get_user_model
 from django.http import JsonResponse
+from authentication import views
 from firestore_utils import get_firestore_client
+from django.http import JsonResponse
+from django.utils.deprecation import MiddlewareMixin
+import jwt
+import datetime
+
 
 # Connection to the firestore
 db = get_firestore_client()
@@ -16,11 +22,12 @@ import datetime
 from firebase_admin import firestore
 
 # this to ensure logging in
-class TokenValidationMiddleware:
+
+class TokenValidationMiddleware(MiddlewareMixin):
     def __init__(self, get_response):
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request, *args, **kwargs):
         try:
             # Extract JWT token from request headers
             authorization_header = request.headers.get('Authorization')
@@ -34,6 +41,8 @@ class TokenValidationMiddleware:
                     if 'exp' in payload and payload['exp'] >= datetime.datetime.utcnow().timestamp():
                         # Attach user information to the request for downstream views/middleware
                         request.user_info = payload
+                        # Call the next middleware or view with the 'value' argument
+                        return self.get_response(request, *args, **kwargs)
                     else:
                         return JsonResponse({"error": "Token has expired"}, status=401)
                 except jwt.ExpiredSignatureError:
@@ -45,11 +54,7 @@ class TokenValidationMiddleware:
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
-
-        # Pass the request to the next middleware or view
-        response = self.get_response(request)
-        return response
-
+        
 class RoleBasedAccessControlMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
@@ -128,9 +133,9 @@ class TeacherAccessMiddleware:
 
     def __call__(self, request):
         # Check if user_info exists in the request (set by TokenValidationMiddleware)
-        if hasattr(request, 'user_info'):
-            # Extract user role from user_info
-            user_role = request.user_info.get('role')
+        if hasattr(request, 'user'):
+            # Extract user role from user
+            user_role = request.user.get('role')
 
             # Implement your role-based access control logic here
             if user_role != 'teacher':
@@ -145,10 +150,10 @@ class StudentAccessMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Check if user_info exists in the request (set by TokenValidationMiddleware)
-        if hasattr(request, 'user_info'):
-            # Extract user role from user_info
-            user_role = request.user_info.get('role')
+        # Check if user exists in the request (set by TokenValidationMiddleware)
+        if hasattr(request, 'user'):
+            # Extract user role from user
+            user_role = request.user.get('role')
 
             # Implement your role-based access control logic here
             if user_role != 'student':
@@ -163,10 +168,10 @@ class ParentAccessMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Check if user_info exists in the request (set by TokenValidationMiddleware)
-        if hasattr(request, 'user_info'):
-            # Extract user role from user_info
-            user_role = request.user_info.get('role')
+        # Check if user exists in the request (set by TokenValidationMiddleware)
+        if hasattr(request, 'user'):
+            # Extract user role from user
+            user_role = request.user.get('role')
 
             # Implement your role-based access control logic here
             if user_role != 'parent':
@@ -181,10 +186,10 @@ class AdminAccessMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Check if user_info exists in the request (set by TokenValidationMiddleware)
-        if hasattr(request, 'user_info'):
-            # Extract user role from user_info
-            user_role = request.user_info.get('role')
+        # Check if user exists in the request (set by TokenValidationMiddleware)
+        if hasattr(request, 'user'):
+            # Extract user role from user
+            user_role = request.user.get('role')
 
             # Implement your role-based access control logic here
             if user_role != 'admin':

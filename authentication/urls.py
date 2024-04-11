@@ -1,6 +1,11 @@
 from django.urls import path, include, re_path
 from . import views
-import middleware
+from middleware import (
+    TokenValidationMiddleware,
+    AdminAccessMiddleware,
+    AnotherMiddleware,
+    VerifiedEmail,
+)
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
@@ -11,22 +16,26 @@ urlpatterns = [
     # path("get_user1/", views.get_user1, name="get_user1"),  # Added comma here
     # path("get_user1/<int:id>/", views.get_user1, name="get_user1"),  # Added comma here
     path("create_user/", views.create_user, name="create_user"),
-    path(
-        "get_user2/<str:value>/", views.get_user2, name="get_user2"
-    ),  # Added comma here
+    path('get_user2/<str:value>/',
+         TokenValidationMiddleware(views.get_user2)
+         ),
+           path('get_all_users/',
+         TokenValidationMiddleware(views.get_all_users)
+         ),
     path("verify-email/", views.verify_email, name="verify_email"),
     path(
         "users/<str:id>/update_password/", views.update_password, name="update_password"
     ),
     path("login/", views.login, name="login"),
     path("logout/", views.logout, name="logout"),
-    path("delete_user/<str:uid>/", views.delete_user, name="delete_user"),
+    path("delete_user/<str:id>/", TokenValidationMiddleware(views.delete_user)),
     path(
         "ok/",
-        middleware.TokenValidationMiddleware(
-        middleware.AnotherMiddleware(views.ok)),
+        TokenValidationMiddleware(AnotherMiddleware(views.ok)),
     ),  # this worked alright
-    path("reset_password_email/", middleware.VerifiedEmail(views.reset_password_email)),
-    path("reset_password_form/", middleware.VerifiedEmail(views.reset_password_form)),
+    path("reset_password_email/", VerifiedEmail(views.reset_password_email)),
+    path("reset_password_form/", VerifiedEmail(views.reset_password_form)),
     path("reset_password_page/", views.reset_password_page, name="reset_password_page"),
 ]
+# Apply TokenValidationMiddleware to the get_user2 view
+# views.get_user2 = method_decorator(TokenValidationMiddleware)(views.get_user2)
