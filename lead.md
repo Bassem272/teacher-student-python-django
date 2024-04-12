@@ -206,3 +206,22 @@ def fetch_notifications(request):
 ```
 
 These are just examples, and you would need to implement the corresponding backend logic to handle these requests. Additionally, ensure that you properly authenticate and authorize users before allowing them to access these endpoints.
+
+
+Logic and Usage:
+
+Get Inbox (get_inbox): This endpoint retrieves the inbox messages for a specific user. It can be used when the user navigates to their inbox page to display their received messages.
+
+Get Notifications (get_notifications): This endpoint retrieves the notifications for a specific user. It can be used to display notifications in the user interface, such as new message notifications or other types of alerts.
+
+Send Message (send_message): This endpoint allows a user to send a message to another user. It's typically used when the user interacts with the messaging feature in the UI and sends a message to another user.
+
+Mark Message as Read (mark_message_as_read): This endpoint marks a specific message in the user's inbox as read. It's triggered when the user interacts with a message in their inbox and marks it as read.
+
+Delete Message (delete_message): This endpoint deletes a specific message from the user's inbox. It's used when the user wants to remove a message from their inbox permanently.
+
+Clear Inbox (clear_inbox): This endpoint clears all messages from the user's inbox. It's typically used when the user wants to remove all messages in one action.
+
+Mark All Messages as Read (mark_all_messages_as_read): This endpoint marks all messages in the user's inbox as read. It's used when the user wants to mark all unread messages as read, for example, after viewing their inbox.
+
+The order of these endpoints in the website typically follows the user's workflow and the user interface design. For example, when the user logs in and accesses their dashboard, they might see notifications first, followed by their inbox messages. The option to send a message or perform other actions would be available within the respective pages or message threads.

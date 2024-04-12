@@ -16,12 +16,11 @@ urlpatterns = [
     # path("get_user1/", views.get_user1, name="get_user1"),  # Added comma here
     # path("get_user1/<int:id>/", views.get_user1, name="get_user1"),  # Added comma here
     path("create_user/", views.create_user, name="create_user"),
-    path('get_user2/<str:value>/',
-         TokenValidationMiddleware(views.get_user2)
-         ),
-           path('get_all_users/',
-         TokenValidationMiddleware(views.get_all_users)
-         ),
+    path("get_user2/<str:value>/", TokenValidationMiddleware(views.get_user2)),
+    path("get_all_users/", TokenValidationMiddleware(views.get_all_users)),
+    path("get_all_students/", TokenValidationMiddleware(views.get_all_students)),
+    path("get_all_teachers/", TokenValidationMiddleware(views.get_all_teachers)),
+    path("get_all_parents/", TokenValidationMiddleware(views.get_all_parents)),
     path("verify-email/", views.verify_email, name="verify_email"),
     path(
         "users/<str:id>/update_password/", views.update_password, name="update_password"

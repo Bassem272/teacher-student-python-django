@@ -210,16 +210,53 @@ def create_user(request):
         "updated_at": datetime.datetime.now(),
         "courses": courses,
         "children": children,
-        "inbox": [],  # List of received messages
-        "sent_messages": [],  # List of sent messages
-        "unread_messages": 0,  # Count of unread messages
-        "message_notifications_enabled": True,  # Enable message notifications by default
-        "blocked_users": [],  # List of blocked users
-        "favorite_users": [],  # List of favorite users
-        "notifications": [],  # List of notifications
-        "notification_settings": {},  # User notification settings
-        "email_notifications_enabled": True,  # Enable email notifications by default
-        "push_notifications_enabled": True,  # Enable push notifications by default
+         "inbox": [
+        {
+            "sender_id": "user_id_1",
+            "message": "Hello, how are you?",
+            "read": False
+        },
+        {
+            "sender_id": "user_id_2",
+            "message": "Don't forget our meeting tomorrow.",
+            "read": True
+        }
+    ],
+    "sent_messages": [
+        {
+            "receiver_id": "user_id_3",
+            "message": "Thank you for your help!",
+            "timestamp": "2024-04-12T12:00:00Z"
+        },
+        {
+            "receiver_id": "user_id_4",
+            "message": "I'll be there at 3 PM.",
+            "timestamp": "2024-04-12T10:30:00Z"
+        }
+    ],
+    "unread_messages": 2,
+    "message_notifications_enabled": True,
+    "blocked_users": ["user_id_5", "user_id_6"],
+    "favorite_users": ["user_id_7", "user_id_8"],
+    "notifications": [
+        {
+            "type": "reminder",
+            "message": "You have an upcoming appointment.",
+            "timestamp": "2024-04-12T09:00:00Z"
+        },
+        {
+            "type": "notification",
+            "message": "Your account has been updated.",
+            "timestamp": "2024-04-11T15:00:00Z"
+        }
+    ],
+    "notification_settings": {
+        "email": True,
+        "push": True,
+        "sms": False
+    },
+    "email_notifications_enabled": True,
+    "push_notifications_enabled": True # Enable push notifications by default
         # Add more fields as needed
     }
     user_ref = db.collection("users").document()
@@ -466,6 +503,63 @@ def get_all_users(request):
     print(">>>>>>>)))))___________")
     # user_data = request.user_data
     return Response({"users": all_users, "users_map": users_map})  # Example response
+
+@api_view(["GET"])
+def get_all_students(request):
+    # Retrieve user information from Firebase Authentication using the UID
+    print(request)
+    all_students = []
+    # map with the id as the key
+    students_map = {}
+    students_ref = db.collection("users").where("role", "==","student").stream()  # this gets reference
+    for doc in students_ref:
+        students_map[doc.id] = doc.to_dict()
+        students_data = doc.to_dict()  # this gets snapshot
+        all_students.append(students_data)
+    print(all_students)
+    # print(user_ref2)
+    print(">>>>>>>)))))___________")
+    # user_data = request.user_data
+    return Response({"students": all_students, "students_map": students_map})  # Example response
+
+
+@api_view(["GET"])
+def get_all_teachers(request):
+    # Retrieve user information from Firebase Authentication using the UID
+    print(request)
+    all_teachers = []
+    # map with the id as the key
+    teachers_map = {}
+    teachers_ref = db.collection("users").where("role", "==","teacher").stream()  # this gets reference
+    for doc in teachers_ref:
+        teachers_map[doc.id] = doc.to_dict()
+        teachers_data = doc.to_dict()  # this gets snapshot
+        all_teachers.append(teachers_data)
+    print(all_teachers)
+    # print(user_ref2)
+    print(">>>>>>>)))))___________")
+    # user_data = request.user_data
+    return Response({"teachers": all_teachers, "teachers_map": teachers_map})  # Example response
+
+@api_view(["GET"])
+def get_all_parents(request):
+    # Retrieve user information from Firebase Authentication using the UID
+    print(request)
+    all_parents = []
+    # map with the id as the key
+    parents_map = {}
+    parents_ref = db.collection("users").where("role", "==","parent").stream()  # this gets reference
+    for doc in parents_ref:
+        parents_map[doc.id] = doc.to_dict()
+        parents_data = doc.to_dict()  # this gets snapshot
+        all_parents.append(parents_data)
+    print(all_parents)
+    # print(user_ref2)
+    print(">>>>>>>)))))___________")
+    # user_data = request.user_data
+    return Response({"parents": all_parents, "parents_map": parents_map})  # Example response
+
+
 
 
 def update_user_display_name(uid, display_name):
