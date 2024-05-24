@@ -63,6 +63,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # cors added 
+    'corsheaders',
 ]
 
 
@@ -76,7 +78,15 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # Add the account middleware:
     "allauth.account.middleware.AccountMiddleware",
+    # added cors middleware
+    'corsheaders.middleware.CorsMiddleware',
 ]
+# added cors domains
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
+# CORS_ALLOW_ALL_ORIGINS = True
+
 
 # settings.py
 

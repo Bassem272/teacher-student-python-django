@@ -39,7 +39,7 @@ from firestore_utils import get_firestore_client
 db = get_firestore_client()
 
 
-# @csrf_exempt
+# @csrf_exempt ----.> we used create_user instead of this
 def register(request):
     if request.method == "POST":
         # Get the user input from the request
@@ -170,7 +170,9 @@ def create_user(request):
     email = data.get("email")
     # Check if email is already registered
     email_exists = db.collection("users").where("email", "==", email).get()
+    
     if email_exists:
+        print('email exists ')
         return JsonResponse({"message": "Email already exists"}, status=400)
     password = data.get("password")
     name = data.get("name")
@@ -259,15 +261,64 @@ def create_user(request):
     "push_notifications_enabled": True # Enable push notifications by default
         # Add more fields as needed
     }
+    # try: 
     user_ref = db.collection("users").document()
     user_ref.set(datao)
     user_id = user_ref.id
-    return render(
-        request,
-        "ver_email.html",
-        context={"user-data": user_ref, "userId": user_id, "verification_sent": True},
-    )
+    # return render(
+    #     request,
+    #     "ver_email.html",
+    #     context={"user-data": user_ref, "userId": user_id, "verification_sent": True},
+    # )
+    return JsonResponse({"message": "User created successfully", "user_id": user_id})
+    # except Exception as e:
+    #     print(f"the error is {e}")
+    #     return JsonResponse({"error failed to create user:": str(e)}, status=500)
 
+# @api_view(["POST"])
+# def verify_email(request):
+#     data = json.loads(request.body)
+#     email = data.get("email")
+#     code = data.get("code")
+#     print(email, code)
+    
+#     if not email or not code:
+#         return HttpResponseBadRequest("Missing email or code")
+
+#     try:
+#         # Get user documents matching the provided email
+#         user_ref = db.collection("users").where("email", "==", email).get()
+        
+#         if not user_ref:
+#             return HttpResponseBadRequest("Invalid code or user does not exist")
+
+#         # Firestore query returns a list of documents, we need to iterate through them
+#         for doc in user_ref:
+#             user_data = doc.to_dict()
+#             stored_code = user_data.get("verification_code")
+
+#             if stored_code and code == stored_code:
+#                 # Update the user's email_verified field
+#                 db.collection("users").document(doc.id).update({"email_verified": True})
+#                                 # Generate JWT token or perform any other necessary actions
+#                # Set expiration time (e.g., 1 hour from now)
+#                 #expiration_time = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=100)
+               
+#                 # Set expiration time (e.g., 1 hour from now)
+#                 expiration_time = datetime.datetime.utcnow() + datetime.timedelta(
+#                     hours=100
+#                 )
+#                 # when verify email now the user gets logged in directly
+#                 # Generate JWT token with expiration time
+#                 payload = {"email": email, "exp": expiration_time}
+#                 token = jwt.encode(payload, "your_secret_key", algorithm="HS256")
+#                 db.collection("users").document(id).update({"token": token})
+#                 return JsonResponse({"message": "Email verified successfully","token":token }, status=200)
+        
+#         return HttpResponseBadRequest("Invalid code")
+    
+#     except Exception as e:
+#         return HttpResponseBadRequest(f"An error occurred: {str(e)}")
 
 @api_view(["POST"])
 def verify_email(request):
@@ -275,30 +326,44 @@ def verify_email(request):
     email = data.get("email")
     code = data.get("code")
     print(email, code)
+    
     if not email or not code:
         return HttpResponseBadRequest("Missing email or code")
 
     try:
-        # Get verification code from the session
-        stored_code = request.session.get("verification_code")
-        if stored_code and code == stored_code:
-            # Clear verification code from session
-            del request.session["verification_code"]
+        # Get user documents matching the provided email
+        user_ref = db.collection("users").where("email", "==", email).get()
+        
+        if not user_ref:
+            return HttpResponseBadRequest("Invalid code or user does not exist")
 
-            # Activate the user and update email_verified field in Firestore
-            user = User.objects.get(email=email)
-            user.is_active = True
-            user.save()
-            user_ref = db.collection("users").document(str(user.pk))
-            user_ref.update({"email_verified": True})
+        # Firestore query returns a list of documents, we need to iterate through them
+        for doc in user_ref:
+            user_data = doc.to_dict()
+            stored_code = user_data.get("verification_code")
 
-            return JsonResponse({"message": "Email verified successfully"}, status=200)
-        else:
-            return HttpResponseBadRequest("Invalid code")
-    except User.DoesNotExist:
-        return HttpResponseBadRequest("User does not exist")
-
-
+            if stored_code and code == stored_code:
+                # Update the user's email_verified field
+                db.collection("users").document(doc.id).update({"email_verified": True})
+                
+                # Set expiration time (e.g., 1 hour from now)
+                expiration_time = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)
+                
+                # Generate JWT token with expiration time
+                payload = {"email": email, "exp": expiration_time}
+                token = jwt.encode(payload, "your_secret_key", algorithm="HS256")
+                
+                # Update the user's token
+                db.collection("users").document(doc.id).update({"token": token})
+                
+                return JsonResponse({"message": "Email verified successfully", "token": token}, status=200)
+        
+        return HttpResponseBadRequest("Invalid code")
+    
+    except Exception as e:
+        return HttpResponseBadRequest(f"An error occurred: {str(e)}")
+    
+    
 @api_view(["POST"])
 def login(request):
     data = json.loads(request.body)
