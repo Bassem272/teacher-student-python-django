@@ -38,6 +38,8 @@ from firestore_utils import get_firestore_client
 # Connection to the firestore
 db = get_firestore_client()
 
+# views/article_views.py
+
 @api_view(['POST'])
 def create_article(request):
     try:
@@ -45,6 +47,9 @@ def create_article(request):
         title = data.get('title')
         content = data.get('content')
         author_id = data.get('author_id')
+        summary = data.get('summary', '')
+        tags = data.get('tags', [])
+        cover_image_url = data.get('cover_image_url', '')
 
         if not title or not content or not author_id:
             return Response({"error": "Title, content, and author ID are required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -53,10 +58,14 @@ def create_article(request):
             "title": title,
             "content": content,
             "author_id": author_id,
-            "published_date": firestore.SERVER_TIMESTAMP
+            "published_date": firestore.SERVER_TIMESTAMP,
+            "summary": summary,
+            "tags": tags,
+            "cover_image_url": cover_image_url,
+            "likes_count": 0,
+            "comments_count": 0
         }
 
-        # Add document to 'articles' collection
         db.collection('articles').add(article_data)
         return Response({"message": "Article created successfully"}, status=status.HTTP_201_CREATED)
 

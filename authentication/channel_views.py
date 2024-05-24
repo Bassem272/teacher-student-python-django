@@ -38,20 +38,27 @@ from firestore_utils import get_firestore_client
 # Connection to the firestore
 db = get_firestore_client()
 
+# views/channel_views.py
+
 @api_view(['POST'])
 def create_channel(request):
     try:
         data = request.data
         channel_name = data.get('name')
         grade_level = data.get('grade_level')
+        description = data.get('description', '')
+        admin_id = data.get('admin_id')
 
-        if not channel_name or not grade_level:
-            return Response({"error": "Name and grade level are required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not channel_name or not grade_level or not admin_id:
+            return Response({"error": "Name, grade level, and admin ID are required"}, status=status.HTTP_400_BAD_REQUEST)
 
         channel_data = {
             "name": channel_name,
-            "description": data.get('description', ''),
-            "grade_level": grade_level
+            "description": description,
+            "grade_level": grade_level,
+            "created_at": firestore.SERVER_TIMESTAMP,
+            "admin_id": admin_id,
+            "subscribers": []
         }
 
         db.collection('channels').add(channel_data)
