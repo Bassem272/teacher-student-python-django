@@ -19,11 +19,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-
+import cplatform.routing
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("", include("pages.urls")),
+    # path("", include("pages.urls")),
+    path("", include("chat.urls")),
     path("projects/", include("projects.urls")),
     path("auth/", include("authentication.urls")),
     path("communication/", include("messaging_and_communication.urls")),
+    path('ws/', include(cplatform.routing.websocket_urlpatterns)),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
