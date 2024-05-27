@@ -42,35 +42,38 @@ db = get_firestore_client()
 
 @api_view(['POST'])
 def create_article(request):
+    data = request.data
+
+    # Validate required fields
+    required_fields = ['title', 'author_id', 'content']
+    for field in required_fields:
+        if field not in data or not data[field]:
+            return Response({"error": f"'{field}' is required"}, status=status.HTTP_400_BAD_REQUEST)
+    
+    # Construct article data
+    article_data = {
+        "title": data.get("title"),
+        "author_id": data.get("author_id"),
+        "published_date": firestore.SERVER_TIMESTAMP,
+        "summary": data.get("summary", ''),
+        "tags": data.get("tags", []),
+        "category": data.get("category", ''),
+        "image_url": data.get("image_url", ''),
+        "video_url": data.get("video_url", ''),
+        "content": data.get("content", []),
+        "attachments": data.get("attachments", []),
+        "comments": [],
+        "views": 0,
+        "likes": 0,
+        "shares": 0
+    }
+
     try:
-        data = request.data
-        title = data.get('title')
-        content = data.get('content')
-        author_id = data.get('author_id')
-        summary = data.get('summary', '')
-        tags = data.get('tags', [])
-        cover_image_url = data.get('cover_image_url', '')
-
-        if not title or not content or not author_id:
-            return Response({"error": "Title, content, and author ID are required"}, status=status.HTTP_400_BAD_REQUEST)
-
-        article_data = {
-            "title": title,
-            "content": content,
-            "author_id": author_id,
-            "published_date": firestore.SERVER_TIMESTAMP,
-            "summary": summary,
-            "tags": tags,
-            "cover_image_url": cover_image_url,
-            "likes_count": 0,
-            "comments_count": 0
-        }
-
-        db.collection('articles').add(article_data)
+        # Add article to Firestore
+        db.collection("articles").add(article_data)
         return Response({"message": "Article created successfully"}, status=status.HTTP_201_CREATED)
-
     except Exception as e:
-        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": f"An error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @api_view(['GET'])
 def get_article_by_id(request, article_id):

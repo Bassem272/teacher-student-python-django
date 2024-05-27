@@ -36,21 +36,25 @@ urlpatterns = [
     path("reset_password_email/", VerifiedEmail(views.reset_password_email)),
     path("reset_password_form/", VerifiedEmail(views.reset_password_form)),
     path("reset_password_page/", views.reset_password_page, name="reset_password_page"),
- # Article URLs
+    # Article URLs
     path('article/create/', create_article, name='create_article'),
     path('article/<str:article_id>/', get_article_by_id, name='get_article_by_id'),
     path('article/update/<str:article_id>/', update_article, name='update_article'),
     path('article/delete/<str:article_id>/', delete_article, name='delete_article'),
     path('article/', get_all_articles, name='get_all_articles'),  # New endpoint
-
     # Channel URLs
     path('channel/create/', create_channel, name='create_channel'),
     path('channel/<str:channel_id>/', get_channel_by_id, name='get_channel_by_id'),
     path('channel/update/<str:channel_id>/', update_channel, name='update_channel'),
     path('channel/delete/<str:channel_id>/', delete_channel, name='delete_channel'),
     path('channel/', get_all_channels, name='get_all_channels'),  # New endpoint
-
-
+    # Subscription endpoints
+    path('channel/subscribe/<str:channel_id>/', subscribe_to_channel, name='subscribe_to_channel'),
+    path('channel/unsubscribe/<str:channel_id>/', unsubscribe_from_channel, name='unsubscribe_from_channel'),
+    path('channel/<str:channel_id>/messages/send/', send_message, name='send_message'),
+    path('channel/<str:channel_id>/messages/', get_messages, name='get_channel_messages'),
+    path('channel/<str:channel_id>/messages/<str:message_id>/edit/', edit_message, name='edit_message'),
+    path('channel/<str:channel_id>/messages/<str:message_id>/delete/', delete_message, name='delete_message'),
 ]
 # Apply TokenValidationMiddleware to the get_user2 view
 # views.get_user2 = method_decorator(TokenValidationMiddleware)(views.get_user2)
