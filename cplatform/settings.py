@@ -39,8 +39,9 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    "chat",
+    "daphne",
     "channels",
+    "chat",
     "pages.apps.PagesConfig",
     "projects.apps.ProjectsConfig",
     "authentication.apps.AuthenticationConfig",  # Replace "authentication" with your actual app name
@@ -73,22 +74,22 @@ INSTALLED_APPS = [
 ]
 ASGI_APPLICATION = 'cplatform.asgi.application'
 # settings.py
-import os
-from django.core.asgi import get_asgi_application
-from channels.routing import ProtocolTypeRouter, URLRouter
-from channels.auth import AuthMiddlewareStack
-import cplatform.routing
+# import os
+# from django.core.asgi import get_asgi_application
+# from channels.routing import ProtocolTypeRouter, URLRouter
+# from channels.auth import AuthMiddlewareStack
+# import cplatform.routing
 
 # os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cplatform.settings')
 
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [("127.0.0.1", 6379)],
-#         },
-#     },
-# }
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
 
 # CHANNEL_LAYERS = {
 #     "default": {

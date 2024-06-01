@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>chat rooms</title>
+    <meta name="description" content="" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="" />
+  </head>
+  <body>
+    what would you like to enter?<br />
+    <input id="room-name-input" type="text" /> <br />
+    <input id="room-name-submit" type="button" value="Enter" /> <br />
+
+    <script>
+      document.querySelector("#room-name-input").focus();
+      document.querySelector("#room-name-input").onkeyup = function (e) {
+        if (e.value === "Enter") {
+          document.querySelector("#room-name-submit").click();
+        }
+      };
+      document.querySelector("#room-name-submit").onclick = function (e) {
+        var roomName = document.querySelector("#room-name-input").value;
+        window.location.pathname = "/chat/" + roomName + "/";
+      };
+    </script>
+  </body>
+</html>
