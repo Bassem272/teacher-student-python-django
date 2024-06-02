@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     "daphne",
     "channels",
     "chat",
+    "articles",
     "pages.apps.PagesConfig",
     "projects.apps.ProjectsConfig",
     "authentication.apps.AuthenticationConfig",  # Replace "authentication" with your actual app name
