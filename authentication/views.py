@@ -80,87 +80,6 @@ def register(request):
         )
 
 
-# def create_user(request):
-#     # Extract email and password from the request body
-#     data = json.loads(request.body)
-#     email = data.get("email")
-#     password = data.get("password")
-
-#     # Check if email and password are provided
-#     if not email or not password:
-#         return JsonResponse(
-#             {"error": "Email and password are required"},
-#             status=status.HTTP_400_BAD_REQUEST,
-#         )
-
-#     # try:
-#     # Create a new user in Firebase Authentication with the provided email and password
-#     user = auth.create_user(email=email, password=password)
-#     return JsonResponse({"userid": user.uid}, status=201)
-
-
-# this is the best for creating  the user 00000000000
-# @api_view(["POST"])
-# def create_user(request):
-#     data = json.loads(request.body)
-
-#     # Extract relevant fields from the JSON data
-#     email = data.get("email")
-#     password = data.get("password")
-#     name = data.get("name")
-
-#     # Create user in Firebase Authentication
-#     user_record = auth.create_user(email=email, password=password, display_name=name)
-
-#     # Send email verification request
-#     auth.generate_email_verification_link(email)
-#     # Generate verification token
-#     # verification_token = default_token_generator.make_token(user_record.uid)
-
-#     # verification_link = request.build_absolute_uri(
-#     #     reverse("verify_email") + f"?email={email}&token={verification_token}"
-#     # )
-
-#     send_ver_email(email, name, verification_link=verification_link)
-#     # Store additional user data in Firestore
-#     user_data = {
-#         "email": email,
-#         "display_name": name,
-#         "photo_url": "photo_url",
-#         "password": password,
-#         "email_verified": False,
-#         # Add more fields as needed
-#     }
-#     user_ref = db.collection("users").document(user_record.uid)
-#     user_ref.set(user_data)
-
-#     return JsonResponse(
-#         {"user-data": user_data, "userid": user_record.uid, "verification_sent": True},
-#         status=201,
-#     )
-
-
-# def verify_email(request):
-#     email = request.GET.get('email')
-#     token = request.GET.get('token')
-
-#     if not email or not token:
-#         return HttpResponseBadRequest("Missing email or token")
-
-#     try:
-#         # Verify email in Firebase Authentication
-#         decoded_token = auth.verify_email_verification_token(token)
-#         if decoded_token['email'] == email:
-#             # Mark email as verified in Firestore
-#             user = auth.get_user(email)
-#             # user = get_user_model().objects.get(email=email)
-#             user_ref = db.collection("users").document(user.uid)
-#             user_ref.update({"email_verified": True})
-#             return JsonResponse({"message": "Email verified successfully"}, status=200)
-#         else:
-#             return HttpResponseBadRequest("Invalid token")
-#     except auth.InvalidTokenError:
-#         return HttpResponseBadRequest("Invalid token")
 
 
 @api_view(["POST"])
@@ -275,50 +194,6 @@ def create_user(request):
     #     print(f"the error is {e}")
     #     return JsonResponse({"error failed to create user:": str(e)}, status=500)
 
-# @api_view(["POST"])
-# def verify_email(request):
-#     data = json.loads(request.body)
-#     email = data.get("email")
-#     code = data.get("code")
-#     print(email, code)
-    
-#     if not email or not code:
-#         return HttpResponseBadRequest("Missing email or code")
-
-#     try:
-#         # Get user documents matching the provided email
-#         user_ref = db.collection("users").where("email", "==", email).get()
-        
-#         if not user_ref:
-#             return HttpResponseBadRequest("Invalid code or user does not exist")
-
-#         # Firestore query returns a list of documents, we need to iterate through them
-#         for doc in user_ref:
-#             user_data = doc.to_dict()
-#             stored_code = user_data.get("verification_code")
-
-#             if stored_code and code == stored_code:
-#                 # Update the user's email_verified field
-#                 db.collection("users").document(doc.id).update({"email_verified": True})
-#                                 # Generate JWT token or perform any other necessary actions
-#                # Set expiration time (e.g., 1 hour from now)
-#                 #expiration_time = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=100)
-               
-#                 # Set expiration time (e.g., 1 hour from now)
-#                 expiration_time = datetime.datetime.utcnow() + datetime.timedelta(
-#                     hours=100
-#                 )
-#                 # when verify email now the user gets logged in directly
-#                 # Generate JWT token with expiration time
-#                 payload = {"email": email, "exp": expiration_time}
-#                 token = jwt.encode(payload, "your_secret_key", algorithm="HS256")
-#                 db.collection("users").document(id).update({"token": token})
-#                 return JsonResponse({"message": "Email verified successfully","token":token }, status=200)
-        
-#         return HttpResponseBadRequest("Invalid code")
-    
-#     except Exception as e:
-#         return HttpResponseBadRequest(f"An error occurred: {str(e)}")
 
 @api_view(["POST"])
 def verify_email(request):

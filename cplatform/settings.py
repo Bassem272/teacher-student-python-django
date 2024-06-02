@@ -110,7 +110,7 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
+    # "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
@@ -118,15 +118,16 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
     # added cors middleware
     'corsheaders.middleware.CorsMiddleware',
+    'cplatform.middleware.WebSocketCsrfExemptMiddleware'
 ]
 # added cors domains
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:8000",
-]
-# CORS_ALLOW_ALL_ORIGINS = True
-
-
+# CORS_ALLOWED_ORIGINS = [
+#     "http://localhost:3000",
+#     "http://localhost:8000",
+# ]
+CORS_ALLOW_ALL_ORIGINS = True
+# THIS IS TO MAKE THE AllowedhostOriginValidatior works ok 
+ALLOWED_HOSTS=['*']
 # settings.py
 
 # TOKEN_MIDDLEWARE = 'authentication.middleware.TokenValidationMiddleware'

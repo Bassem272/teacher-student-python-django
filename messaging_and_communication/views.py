@@ -50,6 +50,7 @@ def get_notifications(request,id):
             return JsonResponse({"error": "User not found"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
 @api_view(["POST"])
 def send_message(request, sender_id, receiver_id):
     try:
@@ -103,6 +104,7 @@ def mark_message_as_read(request, id, message_index):
             return JsonResponse({"error": "Message index out of range"}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
 @api_view(["DELETE"])
 def delete_message(request, id, message_index):
     try:
@@ -120,6 +122,7 @@ def delete_message(request, id, message_index):
             return JsonResponse({"error": "Message index out of range"}, status=400)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
 @api_view(["DELETE"])
 def clear_inbox(request, id):
     try:
@@ -128,6 +131,7 @@ def clear_inbox(request, id):
         return JsonResponse({"message": "Inbox cleared successfully"})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
 @api_view(["PUT"])
 def mark_all_messages_as_read(request, id):
     try:
