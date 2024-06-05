@@ -8,4 +8,5 @@ urlpatterns = [
     path('delete_article/<str:id>/',views.delete_article),
     path('update_article/<str:id>/',views.update_article),
     path('get_all_articles/',views.get_all_articles),
+    path('delete_all_articles/',views.delete_all_articles),
 ]

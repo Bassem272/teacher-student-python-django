@@ -43,6 +43,12 @@ db = get_firestore_client()
 
 # Create your views here.
 
+import uuid
+
+
+# Function to get the next message ID
+def get_next_article_id():
+    return f'--article_{uuid.uuid4()}'
 
 @api_view(["POST"])
 def create_article(request):
@@ -79,10 +85,11 @@ def create_article(request):
         return JsonResponse({"message": "Grade is required"}, status=400)
     chat_grade_doc_ref = db.collection('chat').document(grade).get()
     chat_grade_doc = chat_grade_doc_ref.to_dict()
-    article_id = f'article_{len(chat_grade_doc) + 1}'
+    article_id = get_next_article_id()
+
     print(article_id)
     article = {article_id: {
-        'userEmail': userEmail,
+        'email': userEmail,
         'content': content,
         'author': author,
         'grade': grade,
@@ -98,15 +105,15 @@ def create_article(request):
         if articles_doc.exists:
             articles_doc_ref.set(article, merge=True)
 
-            articles_doc_ref = db.collection('articles').document(grade).get()
-            articles_doc_dict = articles_doc_ref.to_dict()
+            articles_doc_ref = db.collection('articles').document(grade)
+            articles_doc_dict = articles_doc_ref.get().to_dict()
             lista = list(articles_doc_dict.items())
             print(lista)
             last_article_id = list(articles_doc_dict.keys())[-1]
             articles_doc_ref.set(article, merge=True)
             return JsonResponse({"article": "article added to the chat successfully",
                                     "last_article_id": last_article_id,
-                                    "chat_grade_doc": articles_doc,
+                                    "chat_grade_doc": articles_doc.to_dict(),
                                  }, status=201)
         else:
             return JsonResponse({"message": "Could not find the article document"}, status=404)
@@ -127,13 +134,13 @@ def delete_article(request, id):
         if not grade:
             return JsonResponse({"message": "Grade is required"}, status=400)
         try:
-            articles_doc_ref = db.collection('articles').document(grade).get()
-            articles_doc_dict = articles_doc_ref.to_dict()
-            articles_doc_list = list(articles_doc_dict.key())
+            articles_doc_ref = db.collection('articles').document(grade)
+            articles_doc_dict = articles_doc_ref.get().to_dict()
+            articles_doc_list = list(articles_doc_dict.keys())
             if(id not in articles_doc_list):
                 return JsonResponse({"message": "article not found"}, status=404)
             else:
-                articles_doc_ref.update({id: firestore.DELETE})
+                articles_doc_ref.update({id: firestore.DELETE_FIELD})
                 return JsonResponse({"message": "article deleted successfully"}, status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
@@ -155,7 +162,7 @@ def update_article(request,id):
         content = data.get('content')
         if not content:
             return JsonResponse({"message": "Content is required"}, status=400)
-        userEmail = data.get('userEmail')
+        userEmail = data.get('email')
         if not userEmail:
             return JsonResponse({"message": "User email is required"}, status=400)
         author = data.get('author')
@@ -165,24 +172,36 @@ def update_article(request,id):
         if not  title:
             return JsonResponse({"message": "title is required"}, status=400)
         try:
-            chat_doc_ref = db.collection('chat').document(grade)
-            chat_doc = db.collection('chat').document(grade).get()
-            chat_doc_dict = chat_doc.to_dict()
-            chat_doc_list = list(chat_doc_dict.key())
-            if(id not in chat_doc_list):
+            articles_doc_ref = db.collection('articles').document(grade)
+            articles_doc = db.collection('articles').document(grade).get()
+            articles_doc_dict = articles_doc.to_dict()
+            articles_doc_list = list(articles_doc_dict.keys())
+            print(articles_doc_list)
+            print(id)
+            if(id not in articles_doc_list):
                 return JsonResponse({"message": "Message not found"}, status=404)
             else:
-                chat_doc_ref.update({{id:{
-                        'userEmail': userEmail,
+                articles_doc_ref.update({id:{
+                        'email': userEmail,
                         'content': content,
                         'author': author,
                         'grade': grade,
                         'title':title,
                         'timeStamp': datetime.datetime.now(datetime.timezone.utc).isoformat()
 
-                }}})
-                return JsonResponse({"message": "article updated successfully",
-                                        "message": chat_doc_dict[id]
+                }})
+                return JsonResponse({ 
+                    "message": "article updated successfully",
+
+                                        "edited article": {id:{
+                        'email': userEmail,
+                        'content': content,
+                        'author': author,
+                        'grade': grade,
+                        'title':title,
+                        'timeStamp': datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+                }}
                                         }, status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
@@ -205,10 +224,31 @@ def get_all_articles(request):
             articles_doc_list = list(articles_doc_dict.items())
             return JsonResponse({"message": "articles fetched successfully",
                 
-                                        "messages": articles_doc_list
+                                        "articles": articles_doc_list
                                             }, status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
         
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)    
+
+
+
+@api_view(['delete'])
+def delete_all_articles(request):
+    try:
+        data = json.loads(request.body)
+        if(not data):
+            return HttpResponseBadRequest('the body is empty')
+        grade = data.get('grade')
+        if not grade:
+            return JsonResponse({"message": "Grade is required"}, status=400)
+        try:
+            chat_doc_ref = db.collection('articles').document(grade)
+            chat_doc_ref.set({},merge=False)
+            return JsonResponse({"message": "articles deleted successfully"}, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+        
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

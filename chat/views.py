@@ -46,89 +46,21 @@ def room(request, room_name):
 from django.core.validators import MaxLengthValidator, EmailValidator
 from django.core.exceptions import ValidationError
 
+import threading
+import uuid
+# Define a global counter for message IDs
+message_id_counter = 0
 
-# that was written by me 
-# @api_view(["POST"])
-# def create_message(request):
-#     data = json.loads(request.body)
-#     if( not data ):
-#         return JsonResponse({'message':'no body error bad request'},status=400)
-    
-#     content = data.get('content')
-#     if(not content):
-#         return JsonResponse({"message":'bad request no content for the message'}, status=400)
-#     userEmail = data.get('email')
-#     if(not userEmail):
-#         return JsonResponse({"message":"no email sent form the user"}, status=400)
-#     grade = data.get('grade')
+# Create a lock to synchronize access to the counter
+lock = threading.Lock()
 
-#     try:
-#         v= EmailValidator(userEmail)
-#         userEmail = v['userEmail']
-
-#         message = {
-#             'userEmail':userEmail,
-#             'content' : content,
-#             'timeStamp':datetime.datetime.now(datetime.timezone.utc)
-#         }
-#         chat_grade_doc = db.collection('chat').document(grade)
-#         if chat_grade_doc.exist():
-#             chat_grade_doc.set(message, merge=True)
-#             return JsonResponse({"message": "message added to the chat success"},status=201)
-#         else:
-#             return HttpResponseBadRequest("could not find the chat document")
-#     except Exception as e:
-#         return JsonResponse({"error was found":str(e)}, status=400)
-
-# that was reviewed by perplexity
-# @api_view(["POST"])
-# def create_message(request):
-
-#     try:
-#         data = json.loads(request.body)
-#         if not data:
-#             return JsonResponse({'message': 'No body provided'}, status=400)
-
-#         content = data.get('content')
-#         if not content:
-#             return JsonResponse({'message': 'No content provided'}, status=400)
-
-#         email = data.get('email')
-#         if not email:
-#             return JsonResponse({'message': 'No email provided'}, status=400)
-
-#         grade = data.get('grade')
-
-#         if not grade:
-#             return JsonResponse({'message': 'No grade provided'}, status=400)
-
-#         email_validator = EmailValidator()
-#         try:
-#             v = email_validator(email)
-#             email = v['email']
-#         except ValidationError:
-#             return JsonResponse({'message': 'Invalid email'}, status=400)
-
-#         message = {
-#             'userEmail': email,
-#             'content': content,
-#             'time': datetime.now(datetime.timezone.utc)
-#         }
-
-#         chat_grade_doc = db.collection('chat').document(grade)
-#         if chat_grade_doc.exists():
-#             chat_grade_doc.set(message, merge=True)
-#             return JsonResponse({'message': 'Message added to the chat'}, status=201)
-#         else:
-#             return JsonResponse({'message': 'Could not find the chat document'}, status=404)
-
-#     except Exception as e:
-#         return JsonResponse({'error': str(e)}, status=500)
-    
-#     # revised by chatgpt 4.o and it estimated my experience to be 1-3 years 
-
-
-# db = firestore.Client()
+# Function to get the next message ID
+def get_next_message_id():
+    # global message_id_counter
+    # with lock:
+    #     message_id_counter += 1
+    #     return f'++message_{message_id_counter}'
+    return f'--message_{uuid.uuid4()}'
 
 @api_view(["POST"])
 def create_message(request):
@@ -159,7 +91,9 @@ def create_message(request):
         return JsonResponse({"message": "Grade is required"}, status=400)
     chat_grade_doc_ref = db.collection('chat').document(grade).get()
     chat_grade_doc = chat_grade_doc_ref.to_dict()
-    message_id = f'message_{len(chat_grade_doc) + 1}'
+    message_id = get_next_message_id()
+
+
     print(message_id)
     message = {message_id: {
         'userEmail': userEmail,
@@ -175,8 +109,8 @@ def create_message(request):
         if chat_grade_doc.exists:
             chat_grade_doc_ref.set(message, merge=True)
 
-            chat_grade_doc_ref = db.collection('chat').document(grade).get()
-            chat_grade_doc = chat_grade_doc_ref.to_dict()
+            chat_grade_doc_ref = db.collection('chat').document(grade)
+            chat_grade_doc = chat_grade_doc_ref.get().to_dict()
             lista = list(chat_grade_doc.items())
             print(lista)
             last_message_id = list(chat_grade_doc.keys())[-1]
@@ -191,31 +125,60 @@ def create_message(request):
         return JsonResponse({"error": str(e)}, status=500)
     
 
-@api_view(['delete'])
+# @api_view(['delete'])
+# def delete_message(request, id):
+#     try: 
+#         data = json.loads(request.body)
+#         if(not data):
+#             return HttpResponseBadRequest('the body is empty') 
+#         if( not id): 
+#             return HttpResponseBadRequest("message id is not provided")
+#         grade = data.get('grade')
+#         if not grade:
+#             return JsonResponse({"message": "Grade is required"}, status=400)
+#         try:
+#             chat_doc_ref_snapShot = db.collection('chat').document(grade)
+#             chat_doc_ref = db.collection('chat').document(grade).get()
+#             chat_doc_dict = chat_doc_ref.to_dict()
+#             chat_doc_list = list(chat_doc_dict.keys())
+#             if(id not in chat_doc_list):
+#                 return JsonResponse({"message": "Message not found"}, status=404)
+#             else:
+#                 chat_doc_ref_snapShot.update({id: firestore.DELETE})
+#                 return JsonResponse({"message": "Message deleted successfully"}, status=200)
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=500)
+#     except Exception as e:
+#         return JsonResponse({"error": str(e)}, status=500)
+    
+
+@api_view(['DELETE'])
 def delete_message(request, id):
-    try: 
+    try:
         data = json.loads(request.body)
-        if(not data):
-            return HttpResponseBadRequest('the body is empty') 
-        if( not id): 
-            return HttpResponseBadRequest("message id is not provided")
+        if not data:
+            return HttpResponseBadRequest('The body is empty')
+        if not id:
+            return HttpResponseBadRequest("Message id is not provided")
+        
         grade = data.get('grade')
         if not grade:
             return JsonResponse({"message": "Grade is required"}, status=400)
+        
         try:
-            chat_doc_ref = db.collection('chat').document(grade).get()
-            chat_doc_dict = chat_doc_ref.to_dict()
-            chat_doc_list = list(chat_doc_dict.key())
-            if(id not in chat_doc_list):
+            chat_doc_ref = db.collection('chat').document(grade)
+            chat_doc_snapshot = chat_doc_ref.get()
+            chat_doc_dict = chat_doc_snapshot.to_dict()
+            
+            if not chat_doc_dict or id not in chat_doc_dict:
                 return JsonResponse({"message": "Message not found"}, status=404)
             else:
-                chat_doc_ref.update({id: firestore.DELETE})
+                chat_doc_ref.update({id: firestore.DELETE_FIELD})
                 return JsonResponse({"message": "Message deleted successfully"}, status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
     except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
-    
+        return JsonResponse({"error": str(e)}, status=500)    
 
 @api_view(['put'])    
 def update_message(request,id):
@@ -231,25 +194,26 @@ def update_message(request,id):
         content = data.get('content')
         if not content:
             return JsonResponse({"message": "Content is required"}, status=400)
-        userEmail = data.get('userEmail')
+        userEmail = data.get('email')
         if not userEmail:
             return JsonResponse({"message": "User email is required"}, status=400)
         try:
-            chat_doc_ref = db.collection('chat').document(grade).get()
-            chat_doc_dict = chat_doc_ref.to_dict()
-            chat_doc_list = list(chat_doc_dict.key())
+            chat_doc_ref = db.collection('chat').document(grade)
+            chat_doc_dict = chat_doc_ref.get().to_dict()
+            chat_doc_list = list(chat_doc_dict.keys())
             if(id not in chat_doc_list):
                 return JsonResponse({"message": "Message not found"}, status=404)
             else:
-                chat_doc_ref.set({{id:{
+                chat_doc_ref.set({id:{
                     'content':content,
                     'userEmail':userEmail,
                     'timestamp':datetime.datetime.now(datetime.timezone.utc)
 
-                }}})
+                }})
                 return JsonResponse({"message": "Message updated successfully",
-                                     "message": chat_doc_dict[id]
-                                     }, status=200)
+                                     "edited-old" : chat_doc_dict.get(id)
+                                    
+                                            }, status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
         
@@ -273,6 +237,25 @@ def get_all_messages(request):
                 
                                      "messages": chat_doc_list
             })
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+        
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+@api_view(['delete'])
+def delete_all_messages(request):
+    try:
+        data = json.loads(request.body)
+        if(not data):
+            return HttpResponseBadRequest('the body is empty')
+        grade = data.get('grade')
+        if not grade:
+            return JsonResponse({"message": "Grade is required"}, status=400)
+        try:
+            chat_doc_ref = db.collection('chat').document(grade)
+            chat_doc_ref.set({},merge=False)
+            return JsonResponse({"message": "Messages deleted successfully"}, status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
         
