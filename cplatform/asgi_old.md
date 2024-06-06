@@ -17,10 +17,35 @@ application = ProtocolTypeRouter(
     {
         "http": django_asgi_app,
         "websocket": AllowedHostsOriginValidator(
-            # AuthMiddlewareStack(
-                URLRouter(websocket_urlpatterns)
-                # )
-                
+            AuthMiddlewareStack(URLRouter(websocket_urlpatterns))
         ),
     }
 )
+
+
+import os
+from django.core.asgi import get_asgi_application
+import socketio
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "cplatform.settings")
+
+django_asgi_app = get_asgi_application()
+
+sio = socketio.AsyncServer(async_mode='asgi')
+app = socketio.ASGIApp(sio, django_asgi_app)
+
+# Replace with your routing and other configurations if necessary
+@sio.event
+async def connect(sid, environ):
+    print("connect ", sid)
+
+@sio.event
+async def disconnect(sid):
+    print('disconnect ', sid)
+
+@sio.event
+async def message(sid, data):
+    print('message ', data)
+
+# Now use 'app' as the ASGI callable
+application = app

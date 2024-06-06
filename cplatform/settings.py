@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # cors added 
     'corsheaders',
+    'clear_cache',
     # real time channels and socketio 
     
   
