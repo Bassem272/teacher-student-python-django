@@ -62,6 +62,7 @@ def get_next_message_id():
     #     return f'++message_{message_id_counter}'
     return f'--message_{uuid.uuid4()}'
 
+time = datetime.datetime.now(datetime.timezone.utc).isoformat()
 @api_view(["POST"])
 def create_message(request):
     try:
@@ -96,9 +97,13 @@ def create_message(request):
 
     print(message_id)
     message = {message_id: {
-        'userEmail': userEmail,
+        "type": "message",
+        "message_id": message_id,
         'content': content,
-        'timeStamp': datetime.datetime.now(datetime.timezone.utc).isoformat()
+        "name": "bassem",
+        'email': userEmail,
+        'time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "avatar_url": "https://example.com/path/to/avatar.jpg"
     }
     }
     try:
@@ -112,12 +117,13 @@ def create_message(request):
             chat_grade_doc_ref = db.collection('chat').document(grade)
             chat_grade_doc = chat_grade_doc_ref.get().to_dict()
             lista = list(chat_grade_doc.items())
-            print(lista)
+            lista_sorted = sorted(lista, key=lambda x: x[1]['time'])
+            print(f'create_message_view:{time}')
             last_message_id = list(chat_grade_doc.keys())[-1]
             chat_grade_doc_ref.set(message, merge=True)
             return JsonResponse({"message": "Message added to the chat successfully",
                                     "last_message_id": last_message_id,
-                                    "chat_grade_doc": chat_grade_doc,
+                                    # "chat_grade_doc": chat_grade_doc,
                                     }, status=201)
         else:
             return JsonResponse({"message": "Could not find the chat document"}, status=404)
@@ -221,27 +227,25 @@ def update_message(request,id):
         return JsonResponse({"error": str(e)}, status=500)
     
 @api_view(['get'])
-def get_all_messages(request):
-    try:
-        data = json.loads(request.body)
-        if(not data):
-            return HttpResponseBadRequest('the body is empty') 
-        grade = data.get('grade')
-        if not grade:
-            return JsonResponse({"message": "Grade is required"}, status=400)
+def get_all_messages(request  , grade):
         try:
             chat_doc_ref = db.collection('chat').document(grade).get()
             chat_doc_dict = chat_doc_ref.to_dict()
             chat_doc_list = list(chat_doc_dict.items())
+             # Sort messages by time (second element in each tuple)
+            chat_doc_list_sorted = sorted(chat_doc_list, key=lambda x: x[1]['time'])
+            print(f'we have a chat messages success ------{time}')
             return JsonResponse({"message": "Messages fetched successfully",
                 
-                                     "messages": chat_doc_list
+                                     "messages": chat_doc_list_sorted
             })
         except Exception as e:
-            return JsonResponse({"error": str(e)}, status=500)
+            print(f'error is {e}')
+            return JsonResponse({"error is-": str(e)}, status=500)
         
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    # except Exception as e:
+    #     print(f'overall error is {e}')
+    #     return JsonResponse({"error": str(e)}, status=500)
     
 @api_view(['delete'])
 def delete_all_messages(request):
