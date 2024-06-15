@@ -258,11 +258,15 @@ def logout(request):
     email = data.get("email")
     try:
         # Retrieve user data from Firestore
-        user_ref = db.collection("users").where("email", "==", email).get()
+        # query object 
+        user_ref = db.collection("users").where("email", "==", email)
+       # list object
+        user_ref_list = db.collection("users").where("email", "==", email).get()
         if user_ref:
-            user_data = user_ref[0].to_dict()
+            # document snapshot
+            user_data = user_ref_list[0].reference
             # Set token to null
-            user_ref.update({"token": None})
+            user_data.update({"token": None})
             return Response({"message": "Logout successful"})
         else:
             return Response({"error": "User not found"}, status=404)
