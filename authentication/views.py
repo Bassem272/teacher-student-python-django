@@ -34,11 +34,13 @@ from django.http import HttpResponseNotFound
 
 
 from firestore_utils import get_firestore_client
-
+import uuid
 # Connection to the firestore
 db = get_firestore_client()
 
-
+# Function to get the next message ID
+def get_next_user_id():
+    return f'--user_{uuid.uuid4()}'
 # @csrf_exempt ----.> we used create_user instead of this
 def register(request):
     if request.method == "POST":
@@ -85,6 +87,7 @@ def register(request):
 @api_view(["POST"])
 def create_user(request):
     data = json.loads(request.body)
+    print("data", data)
     # Extract relevant fields from the JSON data
     email = data.get("email")
     # Check if email is already registered
@@ -107,70 +110,41 @@ def create_user(request):
     children = data.get("children")
     # Generate a verification code
     verification_code = "".join(random.choices("0123456789", k=6))
-    # Create user in Django User model
-    # user = User.objects.create_user(
-    #     username=name, email=email, password=password
-    # )
-
     # Send verification code via email (you need to implement this part)
     send_verification_code_email(name, email, verification_code)
     # Store verification code in the session (you need to implement this part)
     request.session["verification_code"] = verification_code
     # Store additional user data in Firestore
     datao = {
+        "user_id": get_next_user_id(),
+         "credits" : 0,
         "email": email,
         "name": name,
-        "photo_url": "photo_url",
-        "password": hashed_password,
+        "avatar_url": "photo_url",
+        "password": password,
         "email_verified": False,
         "verification_code": verification_code,
-        "role": "user",
+        "age": 18,
+        "country": "country",
+        "mobile": "mobile",
+        "lastLogin": "lastLogin",
+        "grade": "grade",
+        "contacts":[],
+
         "token": "jwtToken",
         "role": role,
         "created_at": datetime.datetime.now(),
         "updated_at": datetime.datetime.now(),
-        "courses": courses,
-        "children": children,
-         "inbox": [
-        {
-            "sender_id": "user_id_1",
-            "message": "Hello, how are you?",
-            "read": False
-        },
-        {
-            "sender_id": "user_id_2",
-            "message": "Don't forget our meeting tomorrow.",
-            "read": True
-        }
-    ],
-    "sent_messages": [
-        {
-            "receiver_id": "user_id_3",
-            "message": "Thank you for your help!",
-            "timestamp": "2024-04-12T12:00:00Z"
-        },
-        {
-            "receiver_id": "user_id_4",
-            "message": "I'll be there at 3 PM.",
-            "timestamp": "2024-04-12T10:30:00Z"
-        }
-    ],
+        "courses": [],
+        "children": [],
+
+         "inbox": [],
+    "sent_messages": [],
     "unread_messages": 2,
     "message_notifications_enabled": True,
-    "blocked_users": ["user_id_5", "user_id_6"],
-    "favorite_users": ["user_id_7", "user_id_8"],
-    "notifications": [
-        {
-            "type": "reminder",
-            "message": "You have an upcoming appointment.",
-            "timestamp": "2024-04-12T09:00:00Z"
-        },
-        {
-            "type": "notification",
-            "message": "Your account has been updated.",
-            "timestamp": "2024-04-11T15:00:00Z"
-        }
-    ],
+    "blocked_users": [],
+    "favorite_users": [],
+    "notifications": [],
     "notification_settings": {
         "email": True,
         "push": True,
@@ -180,19 +154,20 @@ def create_user(request):
     "push_notifications_enabled": True # Enable push notifications by default
         # Add more fields as needed
     }
-    # try: 
-    user_ref = db.collection("users").document()
-    user_ref.set(datao)
-    user_id = user_ref.id
+    try:
+        user_ref = db.collection("users").document()
+        user_ref.set(datao)
+        user_id = user_ref.id
     # return render(
     #     request,
     #     "ver_email.html",
     #     context={"user-data": user_ref, "userId": user_id, "verification_sent": True},
     # )
-    return JsonResponse({"message": "User created successfully", "user_id": user_id})
-    # except Exception as e:
-    #     print(f"the error is {e}")
-    #     return JsonResponse({"error failed to create user:": str(e)}, status=500)
+        return JsonResponse({"message": "User created successfully", "user_id": user_id})
+    except Exception as e:
+        print(f"the error is {e}")
+        return JsonResponse({"error failed to create user:": str(e)}, status=500)
+   
 
 
 @api_view(["POST"])
@@ -248,28 +223,29 @@ def login(request):
     try:
         # Retrieve user data from Firestore
         user_ref = db.collection("users").where("email", "==", email).get()
+        
         id = user_ref[0].id
         if user_ref:
             user_data = user_ref[0].to_dict()
             hashed_password = user_data["password"]
             # Compare passwords
-            if check_password(password, hashed_password):
+            # if check_password(password, hashed_password):
                 # Authentication successful
                 # Generate JWT token or perform any other necessary actions
                 # Set expiration time (e.g., 1 hour from now)
-                expiration_time = datetime.datetime.utcnow() + datetime.timedelta(
+            expiration_time = datetime.datetime.utcnow() + datetime.timedelta(
                     hours=100
                 )
                 # Generate JWT token with expiration time
-                payload = {"email": email, "exp": expiration_time}
-                token = jwt.encode(payload, "your_secret_key", algorithm="HS256")
-                db.collection("users").document(id).update({"token": token})
+            payload = {"email": email, "exp": expiration_time}
+            token = jwt.encode(payload, "your_secret_key", algorithm="HS256")
+            db.collection("users").document(id).update({"token": token})
                 # Send token along with success message
-                return Response(
-                    {"message": "Authentication successful", "token": token}
+            return Response(
+                {"message": "Authentication successful", "token": token, "user_data":user_data}
                 )
-            else:
-                return Response({"error": "Invalid credentials"}, status=401)
+        #  else:
+            # return Response({"error": "Invalid credentials"}, status=401)
         else:
             return Response({"error": "User not found"}, status=404)
     except Exception as e:
