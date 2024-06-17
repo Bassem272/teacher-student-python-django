@@ -24,9 +24,10 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("auth/", include("authentication.urls")),
     path("chat/", include("chat.urls")),
-    path("articles/", include("articles.urls")),
+    # path("articles/", include("articles.urls")),
     path("videos/", include("videos.urls")), 
     path("jobs/", include("jobs.urls")), 
+    path("articles/", include("articles_1_01.urls")), 
     
     # path("", include("pages.urls")),
     # path("projects/", include("projects.urls")),
