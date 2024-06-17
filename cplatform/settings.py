@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "chat",
     "articles",
     "videos",
+    "jobs",
     "pages.apps.PagesConfig",
     "projects.apps.ProjectsConfig",
     "authentication.apps.AuthenticationConfig",  # Replace "authentication" with your actual app name

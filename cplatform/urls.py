@@ -26,6 +26,7 @@ urlpatterns = [
     path("chat/", include("chat.urls")),
     path("articles/", include("articles.urls")),
     path("videos/", include("videos.urls")), 
+    path("jobs/", include("jobs.urls")), 
     
     # path("", include("pages.urls")),
     # path("projects/", include("projects.urls")),
