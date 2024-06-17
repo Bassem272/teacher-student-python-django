@@ -25,6 +25,8 @@ urlpatterns = [
     path("auth/", include("authentication.urls")),
     path("chat/", include("chat.urls")),
     path("articles/", include("articles.urls")),
+    path("videos/", include("videos.urls")), 
+    
     # path("", include("pages.urls")),
     # path("projects/", include("projects.urls")),
     # path("communication/", include("messaging_and_communication.urls")),

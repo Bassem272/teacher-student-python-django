@@ -25,12 +25,15 @@ from django.contrib.auth.tokens import default_token_generator
 
 import random
 
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseBadRequest,HttpResponseNotFound
 # from .email_code import send_verification_code_email
 from firebase_admin import firestore
 from django.contrib.auth.hashers import make_password
+from django.core.validators import MaxLengthValidator, EmailValidator
+from django.core.exceptions import ValidationError
 
-from django.http import HttpResponseNotFound
+import threading
+import uuid
 
 
 from firestore_utils import get_firestore_client
@@ -43,11 +46,7 @@ def index(request):
 
 def room(request, room_name):
     return render(request,'chat/room.html',{'room_name':room_name})
-from django.core.validators import MaxLengthValidator, EmailValidator
-from django.core.exceptions import ValidationError
 
-import threading
-import uuid
 # Define a global counter for message IDs
 message_id_counter = 0
 
