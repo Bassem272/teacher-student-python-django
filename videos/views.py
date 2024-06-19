@@ -105,3 +105,18 @@ def get_all_videos(request, grade_id):
     
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+
+
+
+    
+@api_view(["GET"])
+def get_all_grades(request):
+    try:
+        # Fetch all collections
+        collections = db.collections()
+        grades_ = [collection.id for collection in collections if 'grade' in collection.id]
+        
+        return JsonResponse({"grades": grades_}, status=200)
+    
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)    
