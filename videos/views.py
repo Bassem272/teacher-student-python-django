@@ -25,13 +25,14 @@ from django.core.validators import MaxLengthValidator, EmailValidator
 from django.core.exceptions import ValidationError
 import threading
 import uuid
-from firestore_utils import get_firestore_client
 import logging
 
+from firestore_utils import get_firestore_client
 logger = logging.getLogger(__name__)
 # Connection to the firestore
 db = get_firestore_client()
 # Create your views here.
+# this is the document for the video in firestore
 # {
 #   "id": "video1",
 #   "grade": 1,
@@ -75,7 +76,6 @@ def create_video(request, grade_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
-
 @api_view(["GET"])
 def get_video(request, grade_id, video_id):
     logger.info(f"get_video is here: {grade_id , video_id}")
@@ -91,7 +91,7 @@ def get_video(request, grade_id, video_id):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-    
+
 @api_view(["GET"])    
 def get_all_videos(request, grade_id):
     try:
@@ -106,9 +106,6 @@ def get_all_videos(request, grade_id):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
-
-
-    
 @api_view(["GET"])
 def get_all_grades(request):
     try:

@@ -279,3 +279,17 @@ LOGGING = {
         },
     },
 }
+
+
+# settings.py
+
+# Static files (CSS, JavaScript, Images)
+STATIC_URL = '/static/'
+
+# Additional locations of static files
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'static'),
+]
+
+# Uncomment if you're deploying to production and serving static files from a dedicated location
+# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')

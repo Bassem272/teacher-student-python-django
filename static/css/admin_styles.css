@@ -1,0 +1,50 @@
+/* Base styles for forms */
+.form {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+/* Input fields */
+.form input[type="text"],
+.form input[type="url"],
+.form textarea {
+    width: calc(100% - 20px);
+    padding: 10px;
+    margin: 5px 0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    font-size: 16px;
+}
+
+/* Buttons */
+.form button {
+    padding: 10px 20px;
+    margin-top: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.form button:hover {
+    background-color: #45a049;
+}
+
+/* Error message */
+.form .error-message {
+    color: red;
+    margin-top: 5px;
+}
+
+/* Success message */
+.form .success-message {
+    color: green;
+    margin-top: 5px;
+}
