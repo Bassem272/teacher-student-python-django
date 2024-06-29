@@ -10,14 +10,18 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from .article_views import *
 from .channel_views import *
+# from .views import list_users, add_user_view, change_user_view, delete_user_view
+
+
 # from .pages import home
+# auth/urls.py
 urlpatterns = [
-    path("", include("pages.urls")),
     path("register/", views.register, name="register"),
-    # path("get_user1/", views.get_user1, name="get_user1"),  # Added comma here
-    # path("get_user1/<int:id>/", views.get_user1, name="get_user1"),  # Added comma here
     path("create_user/", views.create_user, name="create_user"),
     path("verify-email/", views.verify_email, name="verify_email"),
+    # path("get_user1/", views.get_user1, name="get_user1"),  # Added comma here
+    # path("get_user1/<int:id>/", views.get_user1, name="get_user1"),  # Added comma here
+    path("", include("pages.urls")),
     path("get_user2/<str:value>/", TokenValidationMiddleware(views.get_user2)),
     path("get_all_users/", TokenValidationMiddleware(views.get_all_users)),
     path("get_all_students/", TokenValidationMiddleware(views.get_all_students)),
@@ -55,6 +59,13 @@ urlpatterns = [
     path('channel/<str:channel_id>/messages/', get_messages, name='get_channel_messages'),
     path('channel/<str:channel_id>/messages/<str:message_id>/edit/', edit_message, name='edit_message'),
     path('channel/<str:channel_id>/messages/<str:message_id>/delete/', delete_message, name='delete_message'),
+    
+    # path('firestoreuser/list/', list_users, name='list_users'),
+    # path('firestoreuser/add/', add_user_view, name='add_user'),
+    # path('firestoreuser/<str:user_id>/change/', change_user_view, name='change_user'),
+    # path('firestoreuser/<str:user_id>/delete/', delete_user_view, name='delete_user'),
+
+
 ]
 # Apply TokenValidationMiddleware to the get_user2 view
 # views.get_user2 = method_decorator(TokenValidationMiddleware)(views.get_user2)

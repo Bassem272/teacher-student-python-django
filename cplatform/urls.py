@@ -34,7 +34,7 @@ from videos.admin import FirestoreVideoAdmin
 
 # Instantiate the FirestoreVideoAdmin class
 firestore_video_admin_instance = FirestoreVideoAdmin(model=FirestoreVideo, admin_site=admin.site)
-
+# cplatform/urls.py
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("videos/", include("videos.urls")), 

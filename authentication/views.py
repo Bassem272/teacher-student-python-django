@@ -84,44 +84,132 @@ def register(request):
 
 
 
+# @api_view(["POST"])
+# def create_user(request):
+#     data = json.loads(request.body)
+#     print("data", data)
+#     # Extract relevant fields from the JSON data
+#     email = data.get("email")
+#     # Check if email is already registered
+#     email_exists = db.collection("users").where("email", "==", email).get()
+    
+#     if email_exists:
+#         print('email exists ')
+#         return JsonResponse({"message": "Email already exists"}, status=400)
+#     password = data.get("password")
+#     name = data.get("name")
+#     hashed_password = make_password(password)
+#     role = data.get("role")
+#     allowed_roles = ["teacher", "student", "parent"]  # Define allowed roles
+#     # Check if role is provided and valid
+#     if "role" in data and data["role"] == "admin":
+#         return JsonResponse({"message": "User cannot be assigned the role of admin"})
+#     if "role" not in data or data["role"] not in allowed_roles:
+#         return JsonResponse({"message": "Invalid user role"})
+#     courses = data.get("courses")
+#     children = data.get("children")
+#     # Generate a verification code
+#     verification_code = "".join(random.choices("0123456789", k=6))
+#     # Send verification code via email (you need to implement this part)
+#     send_verification_code_email(name, email, verification_code)
+#     # Store verification code in the session (you need to implement this part)
+#     request.session["verification_code"] = verification_code
+#     # Store additional user data in Firestore
+#     datao = {
+#         "user_id": get_next_user_id(),
+#          "credits" : 0,
+#         "email": email,
+#         "name": name,
+#         "avatar_url": "photo_url",
+#         "password": password,
+#         "email_verified": False,
+#         "verification_code": verification_code,
+#         "age": 18,
+#         "country": "country",
+#         "mobile": "mobile",
+#         "lastLogin": "lastLogin",
+#         "grade": "grade",
+#         "contacts":[],
+
+#         "token": "jwtToken",
+#         "role": role,
+#         "created_at": datetime.datetime.now(),
+#         "updated_at": datetime.datetime.now(),
+#         "courses": [],
+#         "children": [],
+
+#          "inbox": [],
+#     "sent_messages": [],
+#     "unread_messages": 2,
+#     "message_notifications_enabled": True,
+#     "blocked_users": [],
+#     "favorite_users": [],
+#     "notifications": [],
+#     "notification_settings": {
+#         "email": True,
+#         "push": True,
+#         "sms": False
+#     },
+#     "email_notifications_enabled": True,
+#     "push_notifications_enabled": True # Enable push notifications by default
+#         # Add more fields as needed
+#     }
+#     try:
+#         user_ref = db.collection("users").document()
+#         user_ref.set(datao)
+#         user_id = user_ref.id
+#     # return render(
+#     #     request,
+#     #     "ver_email.html",
+#     #     context={"user-data": user_ref, "userId": user_id, "verification_sent": True},
+#     # )
+#         return JsonResponse({"message": "User created successfully", "user_id": user_id})
+#     except Exception as e:
+#         print(f"the error is {e}")
+#         return JsonResponse({"error failed to create user:": str(e)}, status=500)
+   
 @api_view(["POST"])
 def create_user(request):
     data = json.loads(request.body)
-    print("data", data)
-    # Extract relevant fields from the JSON data
     email = data.get("email")
-    # Check if email is already registered
-    email_exists = db.collection("users").where("email", "==", email).get()
     
-    if email_exists:
-        print('email exists ')
+    # Check if email is already registered
+    if User.objects.filter(email=email).exists():
         return JsonResponse({"message": "Email already exists"}, status=400)
+    
     password = data.get("password")
     name = data.get("name")
     hashed_password = make_password(password)
     role = data.get("role")
-    allowed_roles = ["teacher", "student", "parent"]  # Define allowed roles
-    # Check if role is provided and valid
+    allowed_roles = ["teacher", "student", "parent"]
+    
     if "role" in data and data["role"] == "admin":
         return JsonResponse({"message": "User cannot be assigned the role of admin"})
     if "role" not in data or data["role"] not in allowed_roles:
         return JsonResponse({"message": "Invalid user role"})
+    
     courses = data.get("courses")
     children = data.get("children")
-    # Generate a verification code
     verification_code = "".join(random.choices("0123456789", k=6))
-    # Send verification code via email (you need to implement this part)
     send_verification_code_email(name, email, verification_code)
-    # Store verification code in the session (you need to implement this part)
     request.session["verification_code"] = verification_code
+    
+    # Create the user in Django's User model
+    try:
+        django_user = User.objects.create_user(username=email, email=email, password=password, first_name=name.split()[0], last_name=" ".join(name.split()[1:]))
+        django_user.is_active = False  # User needs to verify email
+        django_user.save()
+    except Exception as e:
+        return JsonResponse({"message": f"Failed to create Django user: {str(e)}"}, status=500)
+
     # Store additional user data in Firestore
     datao = {
         "user_id": get_next_user_id(),
-         "credits" : 0,
+        "credits": 0,
         "email": email,
         "name": name,
         "avatar_url": "photo_url",
-        "password": password,
+        "password": hashed_password,
         "email_verified": False,
         "verification_code": verification_code,
         "age": 18,
@@ -129,45 +217,37 @@ def create_user(request):
         "mobile": "mobile",
         "lastLogin": "lastLogin",
         "grade": "grade",
-        "contacts":[],
-
+        "contacts": [],
         "token": "jwtToken",
         "role": role,
         "created_at": datetime.datetime.now(),
         "updated_at": datetime.datetime.now(),
         "courses": [],
         "children": [],
-
-         "inbox": [],
-    "sent_messages": [],
-    "unread_messages": 2,
-    "message_notifications_enabled": True,
-    "blocked_users": [],
-    "favorite_users": [],
-    "notifications": [],
-    "notification_settings": {
-        "email": True,
-        "push": True,
-        "sms": False
-    },
-    "email_notifications_enabled": True,
-    "push_notifications_enabled": True # Enable push notifications by default
-        # Add more fields as needed
+        "inbox": [],
+        "sent_messages": [],
+        "unread_messages": 2,
+        "message_notifications_enabled": True,
+        "blocked_users": [],
+        "favorite_users": [],
+        "notifications": [],
+        "notification_settings": {
+            "email": True,
+            "push": True,
+            "sms": False
+        },
+        "email_notifications_enabled": True,
+        "push_notifications_enabled": True
     }
+
     try:
         user_ref = db.collection("users").document()
         user_ref.set(datao)
         user_id = user_ref.id
-    # return render(
-    #     request,
-    #     "ver_email.html",
-    #     context={"user-data": user_ref, "userId": user_id, "verification_sent": True},
-    # )
         return JsonResponse({"message": "User created successfully", "user_id": user_id})
     except Exception as e:
-        print(f"the error is {e}")
-        return JsonResponse({"error failed to create user:": str(e)}, status=500)
-   
+        django_user.delete()  # Rollback Django user creation if Firestore fails
+        return JsonResponse({"message": f"Failed to create user in Firestore: {str(e)}"}, status=500)
 
 
 @api_view(["POST"])
@@ -514,3 +594,70 @@ def generate_access_token(user_id):
     # Typically, this involves signing a token with a secret key and including user ID as a payload
     # Return the generated access token
     return "generated_access_token"
+
+
+
+# from django.shortcuts import render, redirect, get_object_or_404
+# from .forms import UserForm
+# from .firestore_admin_utils import add_user, update_user, delete_user, get_user, get_all_users
+
+# def list_users(request):
+#     users_response = get_all_users()
+#     users = users_response.get("users", [])
+#     context = {'users': users}
+#     return render(request, 'admin_user_list.html', context)
+
+# def add_user_view(request):
+#     if request.method == 'POST':
+#         form = UserForm(request.POST)
+#         if form.is_valid():
+#             user_data = {
+#                 "user_id": form.cleaned_data['user_id'],
+#                 "username": form.cleaned_data['username'],
+#                 "email": form.cleaned_data['email'],
+#                 "is_active": form.cleaned_data['is_active'],
+#             }
+#             result = add_user(user_data)
+#             if 'error' not in result:
+#                 return redirect('list_users')
+#             else:
+#                 return render(request, 'admin_user_add.html', {'form': form, 'error': result['error']})
+#     else:
+#         form = UserForm()
+#     return render(request, 'admin_user_add.html', {'form': form})
+
+# def change_user_view(request, user_id):
+#     if request.method == 'POST':
+#         form = UserForm(request.POST)
+#         if form.is_valid():
+#             user_data = {
+#                 "user_id": form.cleaned_data['user_id'],
+#                 "username": form.cleaned_data['username'],
+#                 "email": form.cleaned_data['email'],
+#                 "is_active": form.cleaned_data['is_active'],
+#             }
+#             result = update_user(user_id, user_data)
+#             if 'error' not in result:
+#                 return redirect('list_users')
+#             else:
+#                 return render(request, 'admin_user_change.html', {'form': form, 'user_id': user_id, 'error': result['error']})
+#     else:
+#         user = get_user(user_id).get("user_data", {})
+#         initial_data = {
+#             'user_id': user.get('user_id', ''),
+#             'username': user.get('username', ''),
+#             'email': user.get('email', ''),
+#             'is_active': user.get('is_active', False),
+#         }
+#         form = UserForm(initial=initial_data)
+#     return render(request, 'admin_user_change.html', {'form': form, 'user_id': user_id})
+
+# def delete_user_view(request, user_id):
+#     if request.method == 'POST':
+#         result = delete_user(user_id)
+#         return redirect('list_users')
+#     else:
+#         user = get_user(user_id).get("user_data", {})
+#         return render(request, 'admin_user_delete.html', {'user': user})
+
+
