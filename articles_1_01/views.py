@@ -59,6 +59,8 @@ db = get_firestore_client()
 @api_view(["POST"])
 def create_article(request):
     data = json.loads(request.body)
+    subject = data.get("subject")
+    grade = data.get("grade")
     title = data.get("title")
     author = data.get("author")
     date = data.get("date")
@@ -74,12 +76,52 @@ def create_article(request):
         "id": article_id,
         "author": author,
         "title": title,
-        "date": date,
+        "date": datetime.datetime.now(),
         "content": content,
         "tags": tags,
     }
     try:
-        db.collection('articles').document(article_id).set(article_data)
+        # db.collection('levels').document(grade).set(article_data)
+        db.collection('levels').document(grade).collection('subjects').document(subject).collection('articles').document(article_id).set(article_data)
+        return JsonResponse(
+            {"message": "article created successfully", "article_data": article_data},
+            status=201,
+        )
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+    # data = json.loads(request.body)
+    # print(data)
+    # return Response({"message": "Hello, World! from articles!"})
+
+
+@api_view(["POST"])
+def create_article_g(request , grade, subject):
+    data = json.loads(request.body)
+    # subject = data.get("subject")
+    # grade = data.get("grade")
+    title = data.get("title")
+    author = data.get("author")
+    date = data.get("date")
+    content = data.get("content")
+    tags = data.get("tags")
+
+    if not title or not author or not date or not content or not tags:
+        return HttpResponseBadRequest("Missing required fields")
+
+    # Generate a unique article ID with a prefix
+    article_id = f"article_{uuid.uuid4()}"
+    article_data = {
+        "id": article_id,
+        "author": author,
+        "title": title,
+        "date": datetime.datetime.now(),
+        "content": content,
+        "tags": tags,
+    }
+    try:
+        # db.collection('levels').document(grade).set(article_data)
+        db.collection('levels').document(grade).collection('subjects').document(subject).collection('articles').document(article_id).set(article_data)
         return JsonResponse(
             {"message": "article created successfully", "article_data": article_data},
             status=201,
@@ -157,3 +199,48 @@ def get_all_articles(request):
     
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+    
+# authentication/views.py
+
+@api_view(["GET"])
+def get_grades(request):
+    try:
+        levels_ref = db.collection('levels')
+        grades = [doc.id for doc in levels_ref.stream()]
+        return JsonResponse({"grades": grades}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+# authentication/views.py
+
+@api_view(["GET"])
+def get_subjects(request, grade):
+    try:
+        subjects_ref = db.collection('levels').document(grade).collection('subjects')
+        subjects = [doc.id for doc in subjects_ref.stream()]
+        return JsonResponse({"subjects": subjects}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+# authentication/views.py
+
+@api_view(["GET"])
+def get_articles(request, grade, subject):
+    try:
+        articles_ref = db.collection('levels').document(grade).collection('subjects').document(subject).collection('articles')
+        articles = [doc.id for doc in articles_ref.stream()]
+        return JsonResponse({"articles": articles}, status=200)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+# authentication/views.py
+
+@api_view(["GET"])
+def get_article(request, grade, subject, article_id):
+    try:
+        article_ref = db.collection('levels').document(grade).collection('subjects').document(subject).collection('articles').document(article_id)
+        article = article_ref.get()
+        if article.exists:
+            return JsonResponse({"article": article.to_dict()}, status=200)
+        else:
+            return JsonResponse({"error": "Article not found"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
