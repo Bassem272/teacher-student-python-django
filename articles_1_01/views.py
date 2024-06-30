@@ -225,8 +225,12 @@ def get_subjects(request, grade):
 @api_view(["GET"])
 def get_articles(request, grade, subject):
     try:
-        articles_ref = db.collection('levels').document(grade).collection('subjects').document(subject).collection('articles')
-        articles = [doc.id for doc in articles_ref.stream()]
+        articles_ref = db.collection('levels').document(grade).collection('subjects').document(subject).collection('articles').get()
+        articles = []
+        for doc in articles_ref:
+            article_data = doc.to_dict()
+            articles.append(article_data) 
+        # articles = [doc.title for doc in articles_ref.stream()]
         return JsonResponse({"articles": articles}, status=200)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
