@@ -247,4 +247,25 @@ def get_article(request, grade, subject, article_id):
             return JsonResponse({"error": "Article not found"}, status=404)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-    
+
+@api_view(['GET'])
+def recommended_articles(request, grade):
+    try:
+        docs = db.collection('levels').document(grade).collection('subjects')
+        subjects = [doc.id for doc in docs.stream()]
+        recommended_articles = {}
+        for subject in subjects: 
+            articles = db.collection('levels').document(grade).collection('subjects').document(subject).collection('articles')
+            articles_arr = [doc.to_dict() for doc in articles.stream()]
+            
+            recommended_articles[subject] = articles_arr
+        all_articles = [article for articles in recommended_articles.values() for article in articles]
+         # Shuffle the list and get 6 random articles
+        random.shuffle(all_articles)
+         # Shuffle the list and get 6 random articles
+        random.shuffle(all_articles)
+        flattened_articles = all_articles[:6] = all_articles[:6]
+   
+        return JsonResponse({'recommended_articles':flattened_articles}, status=200)
+    except Exception as e : 
+        return JsonResponse({"error" : str(e) }, status= 500 )        
