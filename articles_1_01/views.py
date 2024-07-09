@@ -105,8 +105,10 @@ def create_article_g(request , grade, subject):
     date = data.get("date")
     content = data.get("content")
     tags = data.get("tags")
+    subject = data.get("subject")
+    grade = data.get("grade")
 
-    if not title or not author or not date or not content or not tags:
+    if not title or not author or not date or not content or not tags or not subject or not grade:
         return HttpResponseBadRequest("Missing required fields")
 
     # Generate a unique article ID with a prefix
@@ -118,6 +120,8 @@ def create_article_g(request , grade, subject):
         "date": datetime.datetime.now(),
         "content": content,
         "tags": tags,
+        'subject':subject,
+        "grade": grade
     }
     try:
         # db.collection('levels').document(grade).set(article_data)
@@ -253,18 +257,20 @@ def recommended_articles(request, grade):
     try:
         docs = db.collection('levels').document(grade).collection('subjects')
         subjects = [doc.id for doc in docs.stream()]
-        recommended_articles = {}
+        recommended_articles = []
         for subject in subjects: 
             articles = db.collection('levels').document(grade).collection('subjects').document(subject).collection('articles')
             articles_arr = [doc.to_dict() for doc in articles.stream()]
             
-            recommended_articles[subject] = articles_arr
-        all_articles = [article for articles in recommended_articles.values() for article in articles]
+            recommended_articles.extend(articles_arr)
+        # all_articles = [article for articles in recommended_articles.values() for article in articles]
          # Shuffle the list and get 6 random articles
-        random.shuffle(all_articles)
+        # random.shuffle(all_articles)
          # Shuffle the list and get 6 random articles
-        random.shuffle(all_articles)
-        flattened_articles = all_articles[:6] = all_articles[:6]
+        random.shuffle(recommended_articles)
+        # print("arti",articles_arr)
+        flattened_articles = recommended_articles[:6] 
+        # print("recommended",flattened_articles)
    
         return JsonResponse({'recommended_articles':flattened_articles}, status=200)
     except Exception as e : 

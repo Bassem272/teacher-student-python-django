@@ -95,7 +95,7 @@ def create_message(request):
 
 
     print(message_id)
-    message = {message_id: {
+    message = {
         "type": "message",
         "message_id": message_id,
         'content': content,
@@ -104,25 +104,31 @@ def create_message(request):
         'time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "avatar_url": "https://example.com/path/to/avatar.jpg"
     }
-    }
+    
     try:
 
-        chat_grade_doc_ref = db.collection('chat').document(grade)
-        
-        chat_grade_doc = chat_grade_doc_ref.get()
-        if chat_grade_doc.exists:
-            chat_grade_doc_ref.set(message, merge=True)
+        chat_grade_doc_ref = db.collection('chat').document(message_id)
+        chat_grade_doc_ref.set(message)
+        # .document(grade)
+        chat_grade_doc_ref = db.collection('chat')
+        chat_docs = chat_grade_doc_ref.stream()
+        chat_map = { doc.id: doc.to_dict() for doc in chat_docs}
+        # chat_grade_doc = chat_grade_doc_ref.get()
+        if chat_map:
+            # chat_grade_doc_ref.set(message, merge=True)
 
-            chat_grade_doc_ref = db.collection('chat').document(grade)
-            chat_grade_doc = chat_grade_doc_ref.get().to_dict()
-            lista = list(chat_grade_doc.items())
+            # .document(grade)
+            lista = list(chat_map.items())
+            print('lista---------------',lista)
             lista_sorted = sorted(lista, key=lambda x: x[1]['time'])
-            print(f'create_message_view:{time}')
-            last_message_id = list(chat_grade_doc.keys())[-1]
-            chat_grade_doc_ref.set(message, merge=True)
+            print(f'create_message_last:{time}------------', lista_sorted[-1])
+            # last_message_id = list(chat_grade_doc.keys())[-1]
+            # print('last_message_id==================',last_message_id)
+            # chat_grade_doc_ref.set(message, merge=True)
             return JsonResponse({"message": "Message added to the chat successfully",
-                                    "last_message_id": last_message_id,
-                                    # "chat_grade_doc": chat_grade_doc,
+                                    # "last_message_id": last_message_id
+                                    # "chat_message": chat_grade_doc,
+                                    "messages_sorted":lista_sorted
                                     }, status=201)
         else:
             return JsonResponse({"message": "Could not find the chat document"}, status=404)
@@ -228,15 +234,20 @@ def update_message(request,id):
 @api_view(['get'])
 def get_all_messages(request  , grade):
         try:
-            chat_doc_ref = db.collection('chat').document(grade).get()
-            chat_doc_dict = chat_doc_ref.to_dict()
-            chat_doc_list = list(chat_doc_dict.items())
+            chat_doc_ref = db.collection('chat').stream()
+            chat_map = {doc.id : doc.to_dict() for doc in chat_doc_ref}
+            if chat_map: 
+                chat_list = list(chat_map.items())
+                chat_list_sorted = sorted(chat_list , key= lambda x:x[1]['time'])
+                print('all_messages************',chat_list_sorted)
+            # chat_doc_dict = chat_doc_ref.to_dict()
+            # chat_doc_list = list(chat_doc_dict.items())
              # Sort messages by time (second element in each tuple)
-            chat_doc_list_sorted = sorted(chat_doc_list, key=lambda x: x[1]['time'])
-            print(f'we have a chat messages success ------{time}')
+            # chat_doc_list_sorted = sorted(chat_doc_list, key=lambda x: x[1]['time'])
+            print(f'we have a chat messages success ------{time}', chat_list_sorted[-1])
             return JsonResponse({"message": "Messages fetched successfully",
                 
-                                     "messages": chat_doc_list_sorted
+                                     "messages": chat_list_sorted
             })
         except Exception as e:
             print(f'error is {e}')
