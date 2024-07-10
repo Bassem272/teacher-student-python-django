@@ -94,7 +94,7 @@ def create_message(request):
     message_id = get_next_message_id()
 
 
-    print(message_id)
+    # print(message_id)
     message = {
         "type": "message",
         "message_id": message_id,
@@ -119,9 +119,9 @@ def create_message(request):
 
             # .document(grade)
             lista = list(chat_map.items())
-            print('lista---------------',lista)
+            # print('lista---------------',lista)
             lista_sorted = sorted(lista, key=lambda x: x[1]['time'])
-            print(f'create_message_last:{time}------------', lista_sorted[-1])
+            # print(f'create_message_last:{time}------------', lista_sorted[-1])
             # last_message_id = list(chat_grade_doc.keys())[-1]
             # print('last_message_id==================',last_message_id)
             # chat_grade_doc_ref.set(message, merge=True)
@@ -239,15 +239,15 @@ def get_all_messages(request  , grade):
             if chat_map: 
                 chat_list = list(chat_map.items())
                 chat_list_sorted = sorted(chat_list , key= lambda x:x[1]['time'])
-                print('all_messages************',chat_list_sorted)
+                # print('all_messages************',chat_list_sorted)
             # chat_doc_dict = chat_doc_ref.to_dict()
             # chat_doc_list = list(chat_doc_dict.items())
              # Sort messages by time (second element in each tuple)
             # chat_doc_list_sorted = sorted(chat_doc_list, key=lambda x: x[1]['time'])
-            print(f'we have a chat messages success ------{time}', chat_list_sorted[-1])
+            # print(f'we have a chat messages success ------{time}', chat_list_sorted[-1])
             return JsonResponse({"message": "Messages fetched successfully",
                 
-                                     "messages": chat_list_sorted
+                                    "messages": chat_list_sorted
             })
         except Exception as e:
             print(f'error is {e}')
