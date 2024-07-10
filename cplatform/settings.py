@@ -256,7 +256,18 @@ SIMPLE_JWT = {
 
 # Email settings
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_PORT = int(os.getenv('EMAIL_PORT'))
+
+# EMAIL_PORT = int(os.getenv('EMAIL_PORT'))
+import os
+
+# Assuming default_port_number is defined somewhere appropriate for your project
+default_port_number = 587  # Replace with your default port number
+
+# Other Django settings...
+# EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'false').lower() == 'true'
+
+# Example usage of environment variable with default value
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', default_port_number))
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS').lower() == 'true'
