@@ -9,4 +9,6 @@ urlpatterns = [
     path('update_message/<str:id>/',views.update_message),
     path('get_all_messages/<str:grade>/',views.get_all_messages),
     path('delete_all_messages/',views.delete_all_messages),
+    path("upload-file/", views.upload_file, name="upload_file"),
+
 ]

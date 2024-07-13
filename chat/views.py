@@ -6,40 +6,64 @@ from grpc import Status
 import jwt
 from requests import Response
 from django.http import HttpResponse, HttpResponseForbidden, JsonResponse
-
 import json
 from firebase_admin import auth
 from rest_framework import status
-
-
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, parser_classes
 from django.contrib.auth.models import User
-
-
 from rest_framework.response import Response
-
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.hashers import check_password
-
 from django.contrib.auth.tokens import default_token_generator
-
 import random
-
 from django.http import JsonResponse, HttpResponseBadRequest,HttpResponseNotFound
 # from .email_code import send_verification_code_email
 from firebase_admin import firestore
 from django.contrib.auth.hashers import make_password
 from django.core.validators import MaxLengthValidator, EmailValidator
 from django.core.exceptions import ValidationError
-
 import threading
 import uuid
-
-
+from rest_framework.parsers import MultiPartParser, FormParser
+import os
 from firestore_utils import get_firestore_client
 
 # Connection to the firestore
-db = get_firestore_client()
+db, storage_bucket = get_firestore_client()
+
+@api_view(['POST'])
+@parser_classes([MultiPartParser, FormParser])
+def upload_file(request):
+        try:
+            files = request.FILES.getlist('file')
+            uploaded_file_urls = []
+
+            bucket_name= 'gs://dragna272.appspot.com'
+ # Replace with your bucket name
+
+            for file in files:
+                # blob_name = os.path.join('uploads', file.name)  # Example path in the bucket
+                blob_name = f'uploads/{file.name}'
+                # Initialize bucket and blob
+                blob = storage_bucket.blob(blob_name)
+
+                # Upload the file to Firebase Storage
+                blob.upload_from_file(file, content_type=file.content_type)
+
+                # Optionally, make the blob publicly accessible
+                blob.make_public()
+
+                # Get the public URL of the uploaded file
+                file_url = blob.public_url
+                uploaded_file_urls.append(file_url)
+
+            return JsonResponse({'uploaded_file_urls': uploaded_file_urls}, status=200)
+        
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+        
+
 # Create your views here.
 def index(request):
     return render(request, 'chat/index.html')
@@ -79,21 +103,18 @@ def create_message(request):
     userEmail = data.get('email')
     if not userEmail:
         return JsonResponse({"message": "User email is required"}, status=400)
-
     email_validator = EmailValidator()
     try:
         email_validator(userEmail)
     except ValidationError:
         return JsonResponse({"message": "Invalid email format"}, status=400)
-
     grade = data.get('grade')
     if not grade:
         return JsonResponse({"message": "Grade is required"}, status=400)
+    fileUrl = request.data.get('fileUrl', '')
     chat_grade_doc_ref = db.collection('chat').document(grade).get()
     chat_grade_doc = chat_grade_doc_ref.to_dict()
     message_id = get_next_message_id()
-
-
     # print(message_id)
     message = {
         "type": "message",
@@ -102,32 +123,26 @@ def create_message(request):
         "name": "bassem",
         'email': userEmail,
         'time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "avatar_url": "https://example.com/path/to/avatar.jpg"
+        "avatar_url": "https://example.com/path/to/avatar.jpg",
+        "fileUrl":fileUrl
     }
     
     try:
-
         chat_grade_doc_ref = db.collection('chat').document(message_id)
         chat_grade_doc_ref.set(message)
-        # .document(grade)
+    
         chat_grade_doc_ref = db.collection('chat')
         chat_docs = chat_grade_doc_ref.stream()
         chat_map = { doc.id: doc.to_dict() for doc in chat_docs}
-        # chat_grade_doc = chat_grade_doc_ref.get()
+    
         if chat_map:
-            # chat_grade_doc_ref.set(message, merge=True)
-
-            # .document(grade)
+        
             lista = list(chat_map.items())
             # print('lista---------------',lista)
             lista_sorted = sorted(lista, key=lambda x: x[1]['time'])
-            # print(f'create_message_last:{time}------------', lista_sorted[-1])
-            # last_message_id = list(chat_grade_doc.keys())[-1]
-            # print('last_message_id==================',last_message_id)
-            # chat_grade_doc_ref.set(message, merge=True)
+     
             return JsonResponse({"message": "Message added to the chat successfully",
-                                    # "last_message_id": last_message_id
-                                    # "chat_message": chat_grade_doc,
+                            
                                     "messages_sorted":lista_sorted
                                     }, status=201)
         else:

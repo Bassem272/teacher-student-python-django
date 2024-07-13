@@ -23,7 +23,7 @@
 #         logging.error(f'Error initializing Firestore: {str(e)}')
 #         raise  # Re-raise the exception to propagate it further
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, storage
 import os
 import logging
 
@@ -35,7 +35,7 @@ def get_firestore_client():
         # Check for required environment variables
         cred_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
         project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
-
+        bucket_storage = os.getenv('BUCKET_STORAGE')
         if not cred_path or not project_id:
             raise EnvironmentError('GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_CLOUD_PROJECT environment variable not set')
 
@@ -45,11 +45,13 @@ def get_firestore_client():
             cred = credentials.ApplicationDefault()
             firebase_admin.initialize_app(cred, {
                 'projectId': project_id,
+                'storageBucket':
+                'dragna272.appspot.com'
             })
             logging.info('Firestore initialized successfully')
 
         # Return Firestore client
-        return firestore.client()
+        return firestore.client() , storage.bucket()
 
     except Exception as e:
         logging.error(f'Error initializing Firestore: {str(e)}')
