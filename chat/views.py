@@ -88,10 +88,13 @@ def get_next_message_id():
 time = datetime.datetime.now(datetime.timezone.utc).isoformat()
 @api_view(["POST"])
 def create_message(request):
-    try:
-        data = json.loads(request.body)
-    except json.JSONDecodeError:
-        return JsonResponse({'message': 'Invalid JSON'}, status=400)
+   
+    # try:
+    data = json.loads(request.body)
+    print("@@@ create_message @@@", request.body)
+
+    # except json.JSONDecodeError:
+    #     return JsonResponse({'message': 'Invalid JSON'}, status=400)
 
     if not data:
         return JsonResponse({'message': 'Request body is empty'}, status=400)
@@ -111,19 +114,34 @@ def create_message(request):
     grade = data.get('grade')
     if not grade:
         return JsonResponse({"message": "Grade is required"}, status=400)
-    fileUrl = request.data.get('fileUrl', '')
+    type =  data.get('type')
+    if type == 'file':
+        fileUrl = data.get('fileUrl')
+        print('type:::::::::::::::::::::::::file')
+        if not fileUrl:
+            return JsonResponse({'message':'fileUrl is required '} , status=400)
+    else:
+        print('type:::::::::::::::::::::::::not______file')
+        fileUrl=''    
+    name = data.get('name') 
+    if not name:
+        return JsonResponse({'message':'name is required '}, status=400)
+    avatar_url = data.get('avatar_url')
+    if not avatar_url:
+        return JsonResponse({"message":'avatar_url is required '}, status=400)
+    print('filetttttttttttttttttttttttttttttttttttt',fileUrl)
     chat_grade_doc_ref = db.collection('chat').document(grade).get()
     chat_grade_doc = chat_grade_doc_ref.to_dict()
     message_id = get_next_message_id()
     # print(message_id)
     message = {
-        "type": "message",
+        "type": type,
         "message_id": message_id,
         'content': content,
-        "name": "bassem",
+        "name": name,
         'email': userEmail,
         'time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-        "avatar_url": "https://example.com/path/to/avatar.jpg",
+        "avatar_url": avatar_url,
         "fileUrl":fileUrl
     }
     

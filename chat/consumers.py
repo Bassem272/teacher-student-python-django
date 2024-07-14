@@ -53,6 +53,21 @@ class ChatConsumer(WebsocketConsumer):
                     }
                     )
                 print(f'we sent a message to the rooms now lol!<< type : message  << receive_consumer_down >>>>>>>>> {time}____________>>>>>>>>')
+            if text_data_json["type"] == "file":
+                print(f"we received a<< type:  file now >> receive_consumer_up>>>>>> {time} ________________>>>>>>>>>>>", text_data_json)
+                content = text_data_json.get("content")
+                grade = text_data_json.get("grade")
+                id = text_data_json.get("id")
+                time = text_data_json.get("time")
+                async_to_sync(self.channel_layer.group_send)(
+                    self.room_group_name,
+                    {
+                    "type": "chat.message",
+                    "message": text_data_json
+                    }
+                    )
+                print(f'we sent a message to the rooms now lol!<< type : message  << receive_consumer_down >>>>>>>>> {time}____________>>>>>>>>')
+       
         except Exception as e:
             print(e)
             async_to_sync(self.channel_layer.group_send)(
