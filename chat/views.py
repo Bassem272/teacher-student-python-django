@@ -116,20 +116,20 @@ def create_message(request):
         return JsonResponse({"message": "Grade is required"}, status=400)
     type =  data.get('type')
     if type == 'file':
-        fileUrl = data.get('fileUrl')
+        link = data.get('link')
         print('type:::::::::::::::::::::::::file')
-        if not fileUrl:
-            return JsonResponse({'message':'fileUrl is required '} , status=400)
+        if not link:
+            return JsonResponse({'message':'link is required '} , status=400)
     else:
         print('type:::::::::::::::::::::::::not______file')
-        fileUrl=''    
+        link=''    
     name = data.get('name') 
     if not name:
         return JsonResponse({'message':'name is required '}, status=400)
     avatar_url = data.get('avatar_url')
     if not avatar_url:
         return JsonResponse({"message":'avatar_url is required '}, status=400)
-    print('filetttttttttttttttttttttttttttttttttttt',fileUrl)
+    print('filetttttttttttttttttttttttttttttttttttt',link)
     chat_grade_doc_ref = db.collection('chat').document(grade).get()
     chat_grade_doc = chat_grade_doc_ref.to_dict()
     message_id = get_next_message_id()
@@ -142,7 +142,7 @@ def create_message(request):
         'email': userEmail,
         'time': datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "avatar_url": avatar_url,
-        "fileUrl":fileUrl
+        "link":link
     }
     
     try:
